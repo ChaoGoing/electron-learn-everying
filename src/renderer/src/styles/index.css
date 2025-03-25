@@ -1,0 +1,16 @@
+@import "tailwindcss/preflight";
+@tailwind utilities;
+
+/* 自定义暗黑模式样式 */
+.dark {
+  color-scheme: dark;
+  background-color: #1a1a1a;
+  color: #ffffff;
+}
+
+/* 亮色模式样式 */
+.light {
+  color-scheme: light;
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
