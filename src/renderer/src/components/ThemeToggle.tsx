@@ -9,6 +9,10 @@ const ThemeToggle = () => {
     setIsDark(theme === 'dark')
     if (theme === 'dark') {
       document.documentElement.classList.add('dark')
+      document.documentElement.classList.remove('light')
+    } else {
+      document.documentElement.classList.add('light')
+      document.documentElement.classList.remove('dark')
     }
   }, [])
 
@@ -16,9 +20,11 @@ const ThemeToggle = () => {
     setIsDark(!isDark)
     if (!isDark) {
       document.documentElement.classList.add('dark')
+      document.documentElement.classList.remove('light')
       localStorage.setItem('theme', 'dark')
     } else {
       document.documentElement.classList.remove('dark')
+      document.documentElement.classList.add('light')
       localStorage.setItem('theme', 'light')
     }
   }
@@ -28,7 +34,7 @@ const ThemeToggle = () => {
       onClick={toggleTheme}
       className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 transition-colors"
     >
-      {isDark ? '🌞 Light' : '🌙 Dark'}
+      {isDark ? '白天' : '黑夜'}
     </button>
   )
 }

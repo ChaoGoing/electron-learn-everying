@@ -1,16 +1,25 @@
-@import "tailwindcss/preflight";
-@tailwind utilities;
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
 
 /* 自定义暗黑模式样式 */
 .dark {
-  color-scheme: dark;
+  /* color-scheme: dark; */
   background-color: #1a1a1a;
   color: #ffffff;
 }
 
 /* 亮色模式样式 */
 .light {
-  color-scheme: light;
+  /* color-scheme: light; */
   background-color: #ffffff;
   color: #1a1a1a;
+}
+
+/* 拖动区域样式 */
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
 }

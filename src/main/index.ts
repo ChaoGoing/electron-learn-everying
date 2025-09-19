@@ -9,6 +9,9 @@ function createWindow(): void {
     width: 900,
     height: 670,
     show: false,
+    frame: true,
+    titleBarStyle: 'hidden', // 完全隐藏标题栏
+    vibrancy: 'under-window', // macOS毛玻璃效果
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
