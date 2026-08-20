@@ -1,22 +1,26 @@
-import { app, shell, BrowserWindow, ipcMain } from 'electron'
+import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { registerAllHandlers } from './ipc'
 import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
-  // Create the browser window.
+  // Create the browser window — frameless for custom title bar
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
     show: false,
-    frame: true,
-    titleBarStyle: 'hidden', // 完全隐藏标题栏
-    vibrancy: 'under-window', // macOS毛玻璃效果
+    frame: false,
+    titleBarStyle: 'hidden', // macOS: still show traffic lights; Windows/Linux: fully frameless
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      contextIsolation: true,
+      nodeIntegration: false
     }
   })
 
@@ -52,8 +56,8 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  // Register all IPC handlers
+  registerAllHandlers()
 
   createWindow()
 

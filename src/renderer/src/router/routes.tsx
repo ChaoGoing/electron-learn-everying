@@ -1,42 +1,69 @@
-import { RouteObject } from 'react-router-dom';
-import { lazy, ReactNode } from 'react';
-import MainLayout from '../layouts/MainLayout';
+import { lazy } from 'react'
+import { RouteObject } from 'react-router-dom'
+import { AppLayout } from '../components/layout/AppLayout'
 
-// 懒加载页面组件
-const Home = lazy(() => import('../pages/Home'));
-const About = lazy(() => import('../pages/About'));
-const Settings = lazy(() => import('../pages/Settings'));
+// Lazy-loaded page components
+const Home = lazy(() => import('../pages/Home'))
+const DiaryPage = lazy(() => import('../pages/DiaryPage'))
+const DiaryDetailPage = lazy(() => import('../pages/DiaryDetailPage'))
+const DiaryEditorPage = lazy(() => import('../pages/DiaryEditorPage'))
+const BlogPage = lazy(() => import('../pages/BlogPage'))
+const ProjectPage = lazy(() => import('../pages/ProjectPage'))
+const SearchPage = lazy(() => import('../pages/SearchPage'))
+const Settings = lazy(() => import('../pages/Settings'))
 
-// 扩展路由配置类型
+// Extended route configuration type
 export interface RouteMeta {
-  title?: string;
-  requiresAuth?: boolean;
-  permissions?: string[];
+  title?: string
+  requiresAuth?: boolean
+  permissions?: string[]
 }
 
 export interface AppRouteObject extends Omit<RouteObject, 'children'> {
-  meta?: RouteMeta;
-  children?: AppRouteObject[];
+  meta?: RouteMeta
+  children?: AppRouteObject[]
 }
 
-// 路由配置
+// Route configuration
 export const routes: AppRouteObject[] = [
   {
     path: '/',
-    element: <MainLayout  />,
+    element: <AppLayout />,
     children: [
       {
         index: true,
-        element: <Home />
+        element: <Home />,
       },
       {
-        path: 'about',
-        element: <About />
+        path: 'diary',
+        element: <DiaryPage />,
+        children: [
+          {
+            path: ':id',
+            element: <DiaryDetailPage />,
+          },
+          {
+            path: ':id/edit',
+            element: <DiaryEditorPage />,
+          },
+        ],
+      },
+      {
+        path: 'blog',
+        element: <BlogPage />,
+      },
+      {
+        path: 'projects',
+        element: <ProjectPage />,
+      },
+      {
+        path: 'search',
+        element: <SearchPage />,
       },
       {
         path: 'settings',
-        element: <Settings />
-      }
-    ]
-  }
-];
+        element: <Settings />,
+      },
+    ],
+  },
+]

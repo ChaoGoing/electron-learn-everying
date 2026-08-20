@@ -1,13 +1,13 @@
-import { createRoot } from 'react-dom/client';
-import './styles/index.css';
+import { createRoot } from 'react-dom/client'
+import './styles/index.css'
 
 import React from 'react'
-import { RouterProvider } from './router/RouterProvider';
+import { App } from './App'
 
-const container = document.getElementById('root') as HTMLElement;
-const root = createRoot(container);
+const container = document.getElementById('root') as HTMLElement
+const root = createRoot(container)
 root.render(
   <React.StrictMode>
-    <RouterProvider />
+    <App />
   </React.StrictMode>
-);
+)
