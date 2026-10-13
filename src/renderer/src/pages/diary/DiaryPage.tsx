@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useParams, Outlet, useLocation } from 'react-router-dom'
-import { DiaryCalendar } from '../components/diary/DiaryCalendar'
-import { DiaryList } from '../components/diary/DiaryList'
-import type { DiaryEntry } from '../../../shared/types/diary'
+import { DiaryCalendar } from '../../components/diary/DiaryCalendar'
+import { DiaryList } from '../../components/diary/DiaryList'
+import type { DiaryEntry } from '../../../../shared/types/diary'
 
 export default function DiaryPage(): JSX.Element {
   const navigate = useNavigate()
@@ -57,7 +57,7 @@ export default function DiaryPage(): JSX.Element {
         title: '',
         content: '',
         mood: null,
-        weather: null,
+        weather: null
       })
       navigate(`/diary/${entry.id}/edit`)
     } catch (err) {
@@ -80,6 +80,11 @@ export default function DiaryPage(): JSX.Element {
     }
   }
 
+  const handleSynced = (): void => {
+    loadEntries()
+    loadDatesWithEntries()
+  }
+
   // Show detail/edit page if an ID is in the URL
   if (isDetail || isEditing) {
     return (
@@ -93,7 +98,10 @@ export default function DiaryPage(): JSX.Element {
               selectedDate={selectedDate}
               datesWithEntries={datesWithEntries}
               onDateSelect={setSelectedDate}
-              onMonthChange={(y, m) => { setYear(y); setMonth(m) }}
+              onMonthChange={(y, m) => {
+                setYear(y)
+                setMonth(m)
+              }}
             />
           </div>
           <DiaryList
@@ -101,6 +109,7 @@ export default function DiaryPage(): JSX.Element {
             selectedId={id || null}
             onSelect={handleSelectEntry}
             onNewEntry={handleNewEntry}
+            onSynced={handleSynced}
           />
         </div>
         {/* Content */}
@@ -123,7 +132,10 @@ export default function DiaryPage(): JSX.Element {
             selectedDate={selectedDate}
             datesWithEntries={datesWithEntries}
             onDateSelect={setSelectedDate}
-            onMonthChange={(y, m) => { setYear(y); setMonth(m) }}
+            onMonthChange={(y, m) => {
+              setYear(y)
+              setMonth(m)
+            }}
           />
         </div>
         <DiaryList
@@ -131,6 +143,7 @@ export default function DiaryPage(): JSX.Element {
           selectedId={null}
           onSelect={handleSelectEntry}
           onNewEntry={handleNewEntry}
+          onSynced={handleSynced}
         />
       </div>
       {/* Empty state */}

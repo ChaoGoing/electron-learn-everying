@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { ArrowLeft, Edit3, Trash2, Heart } from 'lucide-react'
-import { cn } from '../lib/cn'
-import type { DiaryEntry } from '../../../shared/types/diary'
+import { cn } from '../../lib/cn'
+import type { DiaryEntry } from '../../../../shared/types/diary'
 
 const MOOD_EMOJIS: Record<string, string> = {
   happy: '😊', excited: '🤩', grateful: '🙏', neutral: '😐',
@@ -109,7 +109,7 @@ export default function DiaryDetailPage(): JSX.Element {
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
+        <h1 className="font-serif text-2xl font-bold tracking-tight text-text-primary-light dark:text-text-primary-dark mb-2">
           {entry.title || '无标题'}
         </h1>
 

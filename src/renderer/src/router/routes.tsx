@@ -4,13 +4,13 @@ import { AppLayout } from '../components/layout/AppLayout'
 
 // Lazy-loaded page components
 const Home = lazy(() => import('../pages/Home'))
-const DiaryPage = lazy(() => import('../pages/DiaryPage'))
-const DiaryDetailPage = lazy(() => import('../pages/DiaryDetailPage'))
-const DiaryEditorPage = lazy(() => import('../pages/DiaryEditorPage'))
-const BlogPage = lazy(() => import('../pages/BlogPage'))
-const ProjectPage = lazy(() => import('../pages/ProjectPage'))
-const SearchPage = lazy(() => import('../pages/SearchPage'))
-const Settings = lazy(() => import('../pages/Settings'))
+const DiaryPage = lazy(() => import('../pages/diary/DiaryPage'))
+const DiaryDetailPage = lazy(() => import('../pages/diary/DiaryDetailPage'))
+const DiaryEditorPage = lazy(() => import('../pages/diary/DiaryEditorPage'))
+const BlogPage = lazy(() => import('../pages/blog/BlogPage'))
+const ProjectPage = lazy(() => import('../pages/project/ProjectPage'))
+const SearchPage = lazy(() => import('../pages/search/SearchPage'))
+const Settings = lazy(() => import('../pages/settings/Settings'))
 
 // Extended route configuration type
 export interface RouteMeta {

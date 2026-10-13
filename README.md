@@ -1,10 +1,5 @@
 # electron-learn-everything
-
-An Electron application with React and TypeScript
-
-## Recommended IDE Setup
-
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+记录日记，博客，历史开发项目等的个人个性化记录应用
 
 ## Project Setup
 

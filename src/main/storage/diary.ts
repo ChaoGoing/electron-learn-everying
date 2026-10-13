@@ -2,7 +2,17 @@ import { app } from 'electron'
 import path from 'path'
 import crypto from 'crypto'
 import fs from 'fs-extra'
-import type { DiaryEntry, CreateDiaryEntry, UpdateDiaryEntry, DiaryFilters } from '../../shared/types/diary'
+import type {
+  DiaryEntry,
+  CreateDiaryEntry,
+  UpdateDiaryEntry,
+  DiaryFilters
+} from '../../shared/types/diary'
+
+type DiaryEntryMeta = Pick<
+  DiaryEntry,
+  'id' | 'title' | 'mood' | 'weather' | 'wordCount' | 'createdAt' | 'updatedAt' | 'deletedAt'
+>
 
 function getDataDir(): string {
   return path.join(app.getPath('userData'), 'data', 'diary')
@@ -21,24 +31,77 @@ function entryDate(entry: DiaryEntry): string {
   return entry.createdAt.slice(0, 10)
 }
 
-// Read index: { [dateStr]: [{ id, title, mood, weather, wordCount, createdAt, updatedAt }] }
-async function readIndex(): Promise<Record<string, Pick<DiaryEntry, 'id' | 'title' | 'mood' | 'weather' | 'wordCount' | 'createdAt' | 'updatedAt'>[]>> {
+function entryMeta(entry: DiaryEntry): DiaryEntryMeta {
+  return {
+    id: entry.id,
+    title: entry.title,
+    mood: entry.mood,
+    weather: entry.weather,
+    wordCount: entry.wordCount,
+    createdAt: entry.createdAt,
+    updatedAt: entry.updatedAt,
+    deletedAt: entry.deletedAt ?? null
+  }
+}
+
+// Legacy JSON files may predate the `deletedAt` field; normalize on read.
+function normalizeEntry(raw: Partial<DiaryEntry> | null | undefined): DiaryEntry {
+  const createdAt = raw?.createdAt ?? ''
+  return {
+    id: raw?.id ?? '',
+    title: raw?.title ?? '',
+    content: raw?.content ?? '',
+    mood: raw?.mood ?? null,
+    weather: raw?.weather ?? null,
+    tags: Array.isArray(raw?.tags) ? raw.tags : [],
+    isFavorite: raw?.isFavorite ?? false,
+    wordCount: typeof raw?.wordCount === 'number' ? raw.wordCount : 0,
+    createdAt,
+    updatedAt: raw?.updatedAt ?? createdAt,
+    deletedAt: raw?.deletedAt ?? null
+  }
+}
+
+// Read index: { [dateStr]: DiaryEntryMeta[] }
+async function readIndex(): Promise<Record<string, DiaryEntryMeta[]>> {
   const indexPath = getIndexPath()
   if (await fs.pathExists(indexPath)) {
-    return fs.readJSON(indexPath)
+    return (await fs.readJSON(indexPath)) as Record<string, DiaryEntryMeta[]>
   }
   return {}
 }
 
-async function writeIndex(index: Record<string, unknown>): Promise<void> {
+async function writeIndex(index: Record<string, DiaryEntryMeta[]>): Promise<void> {
   const indexPath = getIndexPath()
   await fs.ensureDir(path.dirname(indexPath))
   await fs.writeJSON(indexPath, index, { spaces: 2 })
 }
 
+// Write an entry file and upsert its index meta (used by create, update, delete, and sync-merge).
+async function writeEntryFile(entry: DiaryEntry): Promise<void> {
+  const date = entryDate(entry)
+  const filePath = getEntryPath(date, entry.id)
+  await fs.ensureDir(path.dirname(filePath))
+  await fs.writeJSON(filePath, entry, { spaces: 2 })
+
+  const index = await readIndex()
+  if (!index[date]) index[date] = []
+  const meta = entryMeta(entry)
+  const i = index[date].findIndex((e) => e.id === entry.id)
+  if (i === -1) {
+    index[date].push(meta)
+  } else {
+    index[date][i] = meta
+  }
+  await writeIndex(index)
+}
+
 // Strip HTML tags for plain text search
 function stripHtml(html: string): string {
-  return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim()
+  return html
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .trim()
 }
 
 // Count words in HTML content
@@ -61,27 +124,10 @@ export async function createEntry(data: CreateDiaryEntry = {}): Promise<DiaryEnt
     wordCount: data.content ? countWords(data.content) : 0,
     createdAt: now,
     updatedAt: now,
+    deletedAt: null
   }
 
-  const date = entryDate(entry)
-  const filePath = getEntryPath(date, entry.id)
-  await fs.ensureDir(path.dirname(filePath))
-  await fs.writeJSON(filePath, entry, { spaces: 2 })
-
-  // Update index
-  const index = await readIndex()
-  if (!index[date]) index[date] = []
-  index[date].push({
-    id: entry.id,
-    title: entry.title,
-    mood: entry.mood,
-    weather: entry.weather,
-    wordCount: entry.wordCount,
-    createdAt: entry.createdAt,
-    updatedAt: entry.updatedAt,
-  })
-  await writeIndex(index)
-
+  await writeEntryFile(entry)
   return entry
 }
 
@@ -89,93 +135,40 @@ export async function updateEntry(id: string, data: UpdateDiaryEntry): Promise<D
   const entry = await getEntry(id)
   if (!entry) return null
 
-  const oldDate = entryDate(entry)
-
   const updated: DiaryEntry = {
     ...entry,
     ...data,
     wordCount: data.content !== undefined ? countWords(data.content) : entry.wordCount,
-    updatedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
   }
 
-  const newDate = entryDate(updated)
-  const oldPath = getEntryPath(oldDate, entry.id)
-  const newPath = getEntryPath(newDate, updated.id)
-
-  // If date changed, move file
-  if (oldPath !== newPath) {
-    await fs.ensureDir(path.dirname(newPath))
-    await fs.writeJSON(newPath, updated, { spaces: 2 })
-    await fs.remove(oldPath)
-
-    // Update index
-    const index = await readIndex()
-    if (index[oldDate]) {
-      index[oldDate] = index[oldDate].filter((e) => e.id !== id)
-      if (index[oldDate].length === 0) delete index[oldDate]
-    }
-    if (!index[newDate]) index[newDate] = []
-    index[newDate].push({
-      id: updated.id,
-      title: updated.title,
-      mood: updated.mood,
-      weather: updated.weather,
-      wordCount: updated.wordCount,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    })
-    await writeIndex(index)
-  } else {
-    await fs.writeJSON(oldPath, updated, { spaces: 2 })
-
-    // Update index
-    const index = await readIndex()
-    if (index[oldDate]) {
-      const idx = index[oldDate].findIndex((e) => e.id === id)
-      if (idx !== -1) {
-        index[oldDate][idx] = {
-          id: updated.id,
-          title: updated.title,
-          mood: updated.mood,
-          weather: updated.weather,
-          wordCount: updated.wordCount,
-          createdAt: updated.createdAt,
-          updatedAt: updated.updatedAt,
-        }
-      }
-      await writeIndex(index)
-    }
-  }
-
+  await writeEntryFile(updated)
   return updated
 }
 
+// Soft delete: write a tombstone instead of removing the file, so the deletion can propagate.
 export async function deleteEntry(id: string): Promise<void> {
   const entry = await getEntry(id)
   if (!entry) return
 
-  const date = entryDate(entry)
-  const filePath = getEntryPath(date, entry.id)
-  await fs.remove(filePath)
-
-  // Update index
-  const index = await readIndex()
-  if (index[date]) {
-    index[date] = index[date].filter((e) => e.id !== id)
-    if (index[date].length === 0) delete index[date]
-    await writeIndex(index)
+  const now = new Date().toISOString()
+  const updated: DiaryEntry = {
+    ...entry,
+    deletedAt: now,
+    updatedAt: now
   }
+
+  await writeEntryFile(updated)
 }
 
 export async function getEntry(id: string): Promise<DiaryEntry | null> {
-  // Search through index to find the entry's date
   const index = await readIndex()
   for (const date of Object.keys(index)) {
     const found = index[date].find((e) => e.id === id)
     if (found) {
       const filePath = getEntryPath(date, id)
       if (await fs.pathExists(filePath)) {
-        return fs.readJSON(filePath)
+        return normalizeEntry(await fs.readJSON(filePath))
       }
     }
   }
@@ -186,9 +179,7 @@ export async function listEntries(filters: DiaryFilters = {}): Promise<DiaryEntr
   const index = await readIndex()
   const entries: DiaryEntry[] = []
 
-  const datesToRead = filters.date
-    ? [filters.date]
-    : Object.keys(index).sort().reverse()
+  const datesToRead = filters.date ? [filters.date] : Object.keys(index).sort().reverse()
 
   for (const date of datesToRead) {
     if (filters.year && !date.startsWith(`${filters.year}-`)) continue
@@ -198,7 +189,10 @@ export async function listEntries(filters: DiaryFilters = {}): Promise<DiaryEntr
     for (const meta of dateEntries) {
       const filePath = getEntryPath(date, meta.id)
       if (await fs.pathExists(filePath)) {
-        const entry = await fs.readJSON(filePath)
+        const entry = normalizeEntry(await fs.readJSON(filePath))
+
+        // Hide tombstones from user-facing queries.
+        if (entry.deletedAt) continue
 
         if (filters.mood && entry.mood !== filters.mood) continue
         if (filters.tag && !entry.tags.includes(filters.tag)) continue
@@ -236,14 +230,42 @@ export async function getEntriesByDate(date: string): Promise<DiaryEntry[]> {
 export async function getDatesWithEntries(year: number, month: number): Promise<string[]> {
   const prefix = `${year}-${month.toString().padStart(2, '0')}`
   const index = await readIndex()
-  return Object.keys(index).filter((d) => d.startsWith(prefix)).sort()
+  return Object.keys(index)
+    .filter((d) => d.startsWith(prefix) && index[d].some((e) => !e.deletedAt))
+    .sort()
+}
+
+// Return every entry (including tombstones) whose `updatedAt` is after `since`.
+// An empty `since` returns everything, for first-time full sync.
+export async function listEntriesForSync(since: string): Promise<DiaryEntry[]> {
+  const index = await readIndex()
+  const entries: DiaryEntry[] = []
+
+  for (const date of Object.keys(index)) {
+    for (const meta of index[date] || []) {
+      const filePath = getEntryPath(date, meta.id)
+      if (!(await fs.pathExists(filePath))) continue
+      const entry = normalizeEntry(await fs.readJSON(filePath))
+      if (!since || entry.updatedAt > since) {
+        entries.push(entry)
+      }
+    }
+  }
+
+  entries.sort((a, b) => a.updatedAt.localeCompare(b.updatedAt))
+  return entries
+}
+
+// Upsert a full entry received from the remote during a pull merge.
+export async function upsertSyncedEntry(entry: DiaryEntry): Promise<void> {
+  await writeEntryFile(normalizeEntry(entry))
 }
 
 export async function uploadImage(): Promise<string | null> {
   const { dialog } = await import('electron')
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],
-    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }],
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp'] }]
   })
 
   if (result.canceled || result.filePaths.length === 0) return null

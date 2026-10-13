@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { IPC_CHANNELS } from '../shared/types/ipc'
+import type { SyncSettings } from '../shared/types/sync'
 
 // Custom APIs for renderer — typed wrapper around IPC channels
 const api = {
@@ -9,7 +10,7 @@ const api = {
     minimize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
     maximize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
     close: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
-    isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED) as Promise<boolean>,
+    isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED) as Promise<boolean>
   },
 
   // Diary
@@ -23,7 +24,16 @@ const api = {
     getByDate: (date: string) => ipcRenderer.invoke('diary:getByDate', date),
     getDates: (year: number, month: number) => ipcRenderer.invoke('diary:getDates', year, month),
     uploadImage: () => ipcRenderer.invoke('diary:uploadImage') as Promise<string | null>,
+    push: () => ipcRenderer.invoke('diary:push'),
+    pull: () => ipcRenderer.invoke('diary:pull'),
+    getSyncStatus: () => ipcRenderer.invoke('diary:getSyncStatus')
   },
+
+  // Settings
+  settings: {
+    getSync: () => ipcRenderer.invoke('settings:getSync') as Promise<SyncSettings>,
+    setSync: (settings: SyncSettings) => ipcRenderer.invoke('settings:setSync', settings)
+  }
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

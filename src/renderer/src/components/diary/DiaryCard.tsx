@@ -41,7 +41,7 @@ export function DiaryCard({ entry, isActive, onClick }: DiaryCardProps): JSX.Ele
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark truncate">
+          <h3 className="font-serif text-sm font-medium text-text-primary-light dark:text-text-primary-dark truncate">
             {entry.title || '无标题'}
           </h3>
           <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-0.5 line-clamp-2">

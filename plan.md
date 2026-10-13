@@ -82,7 +82,7 @@ src/renderer/src/components/shared/ErrorBoundary.tsx # 全局错误边界
 
 ---
 
-## 阶段 2：日记模块 ✅ 已完成
+## 阶段 2：日记模块 部分完成
 
 **目标：** 完整的日记功能，包含富文本编辑、日历导航、心情/天气标签、图片附件和搜索。
 
@@ -110,9 +110,9 @@ src/renderer/src/components/diary/DiaryList.tsx     # 日记列表
 src/renderer/src/components/diary/DiaryCard.tsx     # 日记卡片
 src/renderer/src/components/diary/MoodPicker.tsx    # 心情选择器
 src/renderer/src/components/diary/WeatherPicker.tsx # 天气选择器
-src/renderer/src/pages/DiaryPage.tsx               # 日记主页
-src/renderer/src/pages/DiaryDetailPage.tsx          # 日记详情页
-src/renderer/src/pages/DiaryEditorPage.tsx          # 日记编辑页
+src/renderer/src/pages/diary/DiaryPage.tsx               # 日记主页
+src/renderer/src/pages/diary/DiaryDetailPage.tsx          # 日记详情页
+src/renderer/src/pages/diary/DiaryEditorPage.tsx          # 日记编辑页
 ```
 
 ---

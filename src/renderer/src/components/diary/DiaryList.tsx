@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react'
 import { DiaryCard } from './DiaryCard'
+import { SyncToolbar } from './SyncToolbar'
 import type { DiaryEntry } from '../../../../shared/types/diary'
 
 interface DiaryListProps {
@@ -7,9 +8,16 @@ interface DiaryListProps {
   selectedId: string | null
   onSelect: (entry: DiaryEntry) => void
   onNewEntry: () => void
+  onSynced?: () => void
 }
 
-export function DiaryList({ entries, selectedId, onSelect, onNewEntry }: DiaryListProps): JSX.Element {
+export function DiaryList({
+  entries,
+  selectedId,
+  onSelect,
+  onNewEntry,
+  onSynced
+}: DiaryListProps): JSX.Element {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -26,6 +34,9 @@ export function DiaryList({ entries, selectedId, onSelect, onNewEntry }: DiaryLi
           <Plus size={16} />
         </button>
       </div>
+
+      {/* Sync controls */}
+      <SyncToolbar onSynced={onSynced} />
 
       {/* List */}
       <div className="flex-1 overflow-auto p-2 space-y-1">

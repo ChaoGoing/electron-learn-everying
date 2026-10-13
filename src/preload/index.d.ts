@@ -1,5 +1,11 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import type { DiaryEntry, CreateDiaryEntry, UpdateDiaryEntry, DiaryFilters } from '../shared/types/diary'
+import type {
+  DiaryEntry,
+  CreateDiaryEntry,
+  UpdateDiaryEntry,
+  DiaryFilters
+} from '../shared/types/diary'
+import type { SyncSettings, SyncStatus, PushResult, PullResult } from '../shared/types/sync'
 
 interface DiaryAPI {
   create(data: CreateDiaryEntry): Promise<DiaryEntry>
@@ -11,6 +17,14 @@ interface DiaryAPI {
   getByDate(date: string): Promise<DiaryEntry[]>
   getDates(year: number, month: number): Promise<string[]>
   uploadImage(): Promise<string | null>
+  push(): Promise<PushResult>
+  pull(): Promise<PullResult>
+  getSyncStatus(): Promise<SyncStatus>
+}
+
+interface SettingsAPI {
+  getSync(): Promise<SyncSettings>
+  setSync(settings: SyncSettings): Promise<void>
 }
 
 interface WindowAPI {
@@ -21,6 +35,7 @@ interface WindowAPI {
     isMaximized: () => Promise<boolean>
   }
   diary: DiaryAPI
+  settings: SettingsAPI
 }
 
 declare global {

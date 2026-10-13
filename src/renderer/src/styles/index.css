@@ -6,6 +6,7 @@
   --font-sans: "Segoe UI Variable", "SF Pro Display", -apple-system, BlinkMacSystemFont,
     "Helvetica Neue", sans-serif;
   --font-mono: "Cascadia Code", "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
 
   /* Windows 11 accent colors */
   --color-accent: #60a5fa;
@@ -115,4 +116,63 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Scoped palette: 「温暖手帐」journal theme (direction 1)
+   Activated by `data-palette="journal"` on <html> via
+   `useRoutePalette` while the user is inside the diary module.
+   Overrides the semantic tokens above, so the whole chrome
+   (sidebar, titlebar, cards, editor) warms up together.
+───────────────────────────────────────────────────────────── */
+:root[data-palette='journal'] {
+  /* Accent — terracotta */
+  --color-accent: #c8735a;
+  --color-accent-hover: #b65e45;
+  --color-accent-active: #9e4b33;
+
+  /* Mica / canvas — warm paper gray */
+  --color-mica-light: #efe8de;
+  --color-mica-dark: #201b16;
+
+  /* Surfaces — ivory paper */
+  --color-surface-light: #fbf6ed;
+  --color-surface-dark: #29241e;
+  --color-surface-elevated-light: #f4eee2;
+  --color-surface-elevated-dark: #332d25;
+
+  /* Borders — warm hairline */
+  --color-border-light: rgba(101, 78, 51, 0.16);
+  --color-border-dark: rgba(255, 244, 222, 0.10);
+
+  /* Text — warm ink */
+  --color-text-primary-light: #453b2d;
+  --color-text-primary-dark: #f3ebd9;
+  --color-text-secondary-light: rgba(69, 59, 45, 0.62);
+  --color-text-secondary-dark: rgba(243, 235, 217, 0.62);
+
+  /* Softer, warmer shadows */
+  --shadow-card: 0 2px 12px rgba(101, 78, 51, 0.10);
+  --shadow-card-dark: 0 2px 12px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 6px 24px rgba(101, 78, 51, 0.14);
+  --shadow-elevated-dark: 0 6px 24px rgba(0, 0, 0, 0.6);
+
+  /* Slightly rounder, softer corners */
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+}
+
+/* Warm scrollbar while inside the journal palette */
+:root[data-palette='journal'] ::-webkit-scrollbar-thumb {
+  background: rgba(139, 105, 68, 0.35);
+}
+:root[data-palette='journal'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 105, 68, 0.55);
+}
+
+/* Paper panel texture (direction 1) — subtle gradients, no external assets */
+.journal-paper {
+  background-image:
+    radial-gradient(120% 80% at 8% 0%, rgba(200, 138, 90, 0.05), transparent 55%),
+    radial-gradient(120% 90% at 100% 100%, rgba(112, 128, 84, 0.05), transparent 55%);
 }

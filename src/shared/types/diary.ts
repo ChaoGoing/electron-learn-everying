@@ -9,6 +9,8 @@ export interface DiaryEntry {
   wordCount: number
   createdAt: string
   updatedAt: string
+  /** Soft-delete tombstone. Non-null means the entry has been deleted. */
+  deletedAt: string | null
 }
 
 export interface CreateDiaryEntry {
