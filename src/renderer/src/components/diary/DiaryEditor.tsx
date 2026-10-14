@@ -19,6 +19,8 @@ import {
   Strikethrough,
   Underline as UnderlineIcon
 } from 'lucide-react'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
 import { cn } from '../../lib/cn'
 import type { CreateDiaryEntry, DiaryEntry, UpdateDiaryEntry } from '../../../../shared/types/diary'
 
@@ -37,20 +39,20 @@ interface ToolbarButtonProps {
 
 function ToolbarButton({ onClick, active, title, children }: ToolbarButtonProps): JSX.Element {
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon"
       onClick={onClick}
       title={title}
       aria-label={title}
       className={cn(
-        'h-7 w-7 flex items-center justify-center rounded-md transition-colors',
-        'text-text-secondary-light dark:text-text-secondary-dark',
-        'hover:bg-black/5 hover:text-text-primary-light dark:hover:bg-white/10 dark:hover:text-text-primary-dark',
+        'h-7 w-7 rounded-md',
         active && 'bg-accent/15 text-accent hover:bg-accent/15 hover:text-accent'
       )}
     >
       {children}
-    </button>
+    </Button>
   )
 }
 
@@ -164,14 +166,15 @@ export function DiaryEditor({ entry, onSave, className }: DiaryEditorProps): JSX
     <div className={cn('flex h-full flex-col', className)}>
       {/* Title */}
       <div className="px-8 pt-7 pb-2">
-        <input
+        <Input
           type="text"
           value={title}
           onChange={(e): void => setTitle(e.target.value)}
           placeholder="无标题"
-          className="w-full border-none bg-transparent font-serif text-3xl font-semibold tracking-tight outline-none
+          className="h-auto border-none bg-transparent px-0 py-0 font-serif text-3xl font-semibold tracking-tight
                      text-text-primary-light dark:text-text-primary-dark
-                     placeholder:text-text-secondary-light/70 dark:placeholder:text-text-secondary-dark/70"
+                     placeholder:text-text-secondary-light/70 dark:placeholder:text-text-secondary-dark/70
+                     focus:border-none focus:ring-0"
         />
       </div>
 

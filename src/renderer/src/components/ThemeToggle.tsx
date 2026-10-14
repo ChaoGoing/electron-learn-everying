@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Button } from './ui/button'
 
 const ThemeToggle = () => {
   const [isDark, setIsDark] = useState(false)
@@ -30,12 +31,13 @@ const ThemeToggle = () => {
   }
 
   return (
-    <button
+    <Button
+      variant="secondary"
       onClick={toggleTheme}
-      className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 transition-colors"
+      className="bg-gray-200 dark:bg-gray-700"
     >
       {isDark ? '白天' : '黑夜'}
-    </button>
+    </Button>
   )
 }
 

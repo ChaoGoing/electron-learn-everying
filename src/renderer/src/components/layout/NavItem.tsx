@@ -1,4 +1,5 @@
 import { type LucideIcon } from 'lucide-react'
+import { Button } from '../ui/button'
 import { cn } from '../../lib/cn'
 
 interface NavItemProps {
@@ -10,15 +11,17 @@ interface NavItemProps {
 
 export function NavItem({ icon: Icon, label, isActive, onClick }: NavItemProps): JSX.Element {
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="icon"
       onClick={onClick}
-      className={cn(
-        'relative w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200 group',
-        'hover:bg-black/5 dark:hover:bg-white/10',
-        isActive && 'bg-accent/15 text-accent hover:bg-accent/20'
-      )}
       title={label}
       aria-label={label}
+      className={cn(
+        'relative w-10 h-10 rounded-lg group',
+        'text-text-primary-light dark:text-text-primary-dark',
+        isActive && 'bg-accent/15 text-accent hover:bg-accent/20'
+      )}
     >
       <Icon size={20} />
       {/* Windows 11 pill-shaped active indicator */}
@@ -33,6 +36,6 @@ export function NavItem({ icon: Icon, label, isActive, onClick }: NavItemProps):
       >
         {label}
       </span>
-    </button>
+    </Button>
   )
 }

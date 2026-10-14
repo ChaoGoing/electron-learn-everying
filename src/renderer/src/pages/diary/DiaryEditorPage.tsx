@@ -16,6 +16,7 @@ import {
 import { DiaryEditor } from '../../components/diary/DiaryEditor'
 import { MoodPicker } from '../../components/diary/MoodPicker'
 import { WeatherPicker } from '../../components/diary/WeatherPicker'
+import { Button } from '../../components/ui/button'
 import { cn } from '../../lib/cn'
 import type { DiaryEntry } from '../../../../shared/types/diary'
 
@@ -82,20 +83,21 @@ function ContextPopover({ open, onToggle, trigger, children }: ContextPopoverPro
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={(): void => onToggle(!open)}
         aria-expanded={open}
         className={cn(
-          'flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors',
+          'h-auto gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-sm',
           'text-text-secondary-light dark:text-text-secondary-dark',
-          'border-transparent hover:border-border-light hover:bg-black/5 dark:hover:bg-white/5',
-          open && 'border-accent/40 bg-accent/10 text-accent'
+          'hover:border-border-light dark:hover:border-border-dark',
+          open && 'border-accent/40 bg-accent/10 text-accent hover:text-accent'
         )}
       >
         {trigger}
         <ChevronDown size={14} className={cn('transition-transform', open && 'rotate-180')} />
-      </button>
+      </Button>
       {open && (
         <div className="absolute left-0 top-full z-20 mt-2 rounded-xl border border-border-light bg-surface-light p-2 shadow-elevated dark:border-border-dark dark:bg-surface-dark dark:shadow-elevated-dark">
           {children}
@@ -172,17 +174,19 @@ export default function DiaryEditorPage(): JSX.Element {
     <div className="flex h-full flex-col">
       {/* Top bar — minimal */}
       <div className="flex items-center gap-3 border-b border-border-light px-6 py-2.5 dark:border-border-dark">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={(): void => {
             navigate(entry ? `/diary/${entry.id}` : '/diary')
           }}
-          className="flex items-center gap-1 text-sm text-text-secondary-light transition-colors
-                     hover:text-text-primary-light dark:text-text-secondary-dark dark:hover:text-text-primary-dark"
+          className="h-auto justify-start gap-1 px-2 py-1.5 text-sm
+                     text-text-secondary-light dark:text-text-secondary-dark
+                     hover:text-text-primary-light dark:hover:text-text-primary-dark"
         >
           <ArrowLeft size={16} />
           <span>返回</span>
-        </button>
+        </Button>
         <div className="flex-1" />
         <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
           {entry?.id ? '编辑日记' : '新日记'} · 自动保存

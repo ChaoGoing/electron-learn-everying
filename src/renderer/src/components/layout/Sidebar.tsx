@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavItem } from './NavItem'
+import { Button } from '../ui/button'
 import { cn } from '../../lib/cn'
 
 interface NavEntry {
@@ -46,18 +47,16 @@ export function Sidebar(): JSX.Element {
     >
       {/* "Start" button at top */}
       <div className="relative">
-        <button
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setStartOpen(!startOpen)}
-          className={cn(
-            'w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200',
-            'hover:bg-black/5 dark:hover:bg-white/10',
-            startOpen && 'bg-accent/15 text-accent'
-          )}
+          className={cn('w-10 h-10 rounded-lg', startOpen && 'bg-accent/15 text-accent')}
           title="开始"
           aria-label="Start menu"
         >
           <Sparkles size={20} />
-        </button>
+        </Button>
 
         {/* Start menu flyout */}
         {startOpen && (
@@ -72,28 +71,30 @@ export function Sidebar(): JSX.Element {
                 'animate-in fade-in slide-in-from-left-2 duration-200'
               )}
             >
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => {
                   navigate('/')
                   setStartOpen(false)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10
+                className="w-full justify-start gap-2 px-3 py-2 h-auto text-sm rounded-lg
                            text-text-primary-light dark:text-text-primary-dark"
               >
                 <Sparkles size={16} />
                 <span>首页</span>
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="ghost"
                 onClick={() => {
                   navigate('/settings')
                   setStartOpen(false)
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10
+                className="w-full justify-start gap-2 px-3 py-2 h-auto text-sm rounded-lg
                            text-text-primary-light dark:text-text-primary-dark"
               >
                 <ChevronRight size={16} />
                 <span>关于</span>
-              </button>
+              </Button>
             </div>
           </>
         )}

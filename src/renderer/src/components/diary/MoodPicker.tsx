@@ -1,3 +1,4 @@
+import { Button } from '../ui/button'
 import { cn } from '../../lib/cn'
 
 const MOODS = [
@@ -20,12 +21,13 @@ export function MoodPicker({ value, onChange }: MoodPickerProps): JSX.Element {
   return (
     <div className="flex flex-wrap gap-1">
       {MOODS.map((mood) => (
-        <button
+        <Button
           key={mood.value}
+          variant="ghost"
+          size="icon"
           onClick={() => onChange(value === mood.value ? null : mood.value)}
           className={cn(
-            'w-9 h-9 flex items-center justify-center rounded-lg text-lg transition-all',
-            'hover:bg-black/5 dark:hover:bg-white/10',
+            'w-9 h-9 rounded-lg text-lg',
             value === mood.value
               ? 'bg-accent/15 ring-1 ring-accent/30 scale-110'
               : 'bg-transparent'
@@ -34,7 +36,7 @@ export function MoodPicker({ value, onChange }: MoodPickerProps): JSX.Element {
           aria-label={mood.label}
         >
           {mood.emoji}
-        </button>
+        </Button>
       ))}
     </div>
   )

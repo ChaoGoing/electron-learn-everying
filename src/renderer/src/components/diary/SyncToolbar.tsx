@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Upload, Download } from 'lucide-react'
+import { Button } from '../ui/button'
+import { cn } from '../../lib/cn'
 import { useSyncStore } from '../../stores/syncStore'
 
 interface SyncToolbarProps {
@@ -12,6 +14,15 @@ function formatTime(iso: string): string {
   return d.toLocaleString()
 }
 
+const iconButtonClass =
+  'w-8 h-8 rounded-md text-text-secondary-light dark:text-text-secondary-dark ' +
+  'hover:text-text-primary-light dark:hover:text-text-primary-dark'
+
+/**
+ * Compact sync controls for the list header: a status dot (at-a-glance state)
+ * plus upload/download icon buttons. The detailed status line lives in the
+ * dot's tooltip so the header stays a single, uncluttered row.
+ */
 export function SyncToolbar({ onSynced }: SyncToolbarProps): JSX.Element {
   const { status, isPushing, isPulling, refresh, push, pull } = useSyncStore()
   const [note, setNote] = useState<string | null>(null)
@@ -46,49 +57,51 @@ export function SyncToolbar({ onSynced }: SyncToolbarProps): JSX.Element {
     }
   }
 
-  const buttonClass =
-    'flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium ' +
-    'border border-border-light dark:border-border-dark ' +
-    'bg-surface-light dark:bg-surface-dark ' +
-    'hover:bg-black/5 dark:hover:bg-white/10 ' +
-    'text-text-primary-light dark:text-text-primary-dark ' +
-    'disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
+  const dotClass = status.lastError
+    ? 'bg-red-500'
+    : status.pendingCount > 0
+      ? 'bg-amber-400'
+      : 'bg-green-500'
+
+  const statusTitle = status.lastError
+    ? status.lastError
+    : `待上传 ${status.pendingCount} 篇` +
+      (status.lastPullAt ? ` · ${formatTime(status.lastPullAt)} 已下载` : '') +
+      (note ? ` · ${note}` : '')
 
   return (
-    <div className="px-3 py-2 border-b border-border-light dark:border-border-dark space-y-1.5">
-      <div className="flex gap-1.5">
-        <button
-          onClick={handlePush}
-          disabled={busy}
-          className={buttonClass}
-          title="上传本地变化到服务器"
-        >
-          <Upload size={13} />
-          {isPushing ? '上传中…' : '上传'}
-        </button>
-        <button
-          onClick={handlePull}
-          disabled={busy}
-          className={buttonClass}
-          title="从服务器下载变化"
-        >
-          <Download size={13} />
-          {isPulling ? '下载中…' : '下载'}
-        </button>
-      </div>
+    <div className="flex items-center gap-1">
+      {/* Sync state dot — details live in the tooltip */}
+      <span
+        className={cn('w-1.5 h-1.5 rounded-full shrink-0', dotClass, busy && 'animate-pulse')}
+        title={statusTitle}
+      />
 
-      {status.lastError ? (
-        <p className="text-[11px] leading-tight text-red-500 break-words">{status.lastError}</p>
-      ) : (
-        <p className="text-[11px] leading-tight text-text-secondary-light dark:text-text-secondary-dark">
-          待上传 {status.pendingCount} 篇
-          {status.lastPullAt ? ` · ${formatTime(status.lastPullAt)} 已下载` : ''}
-        </p>
-      )}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={handlePush}
+        disabled={busy}
+        className={iconButtonClass}
+        title="上传本地变化到服务器"
+        aria-label="上传本地变化到服务器"
+      >
+        <Upload size={15} />
+      </Button>
 
-      {!status.lastError && note ? (
-        <p className="text-[11px] leading-tight text-amber-500 break-words">{note}</p>
-      ) : null}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={handlePull}
+        disabled={busy}
+        className={iconButtonClass}
+        title="从服务器下载变化"
+        aria-label="从服务器下载变化"
+      >
+        <Download size={15} />
+      </Button>
     </div>
   )
 }

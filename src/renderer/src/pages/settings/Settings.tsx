@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Sun, Moon, Monitor, Save } from 'lucide-react'
+import { Sun, Moon, Monitor, Save, Eye, EyeOff } from 'lucide-react'
 import { useThemeStore } from '../../stores/themeStore'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
 import { cn } from '../../lib/cn'
 
 export default function Settings(): JSX.Element {
@@ -10,6 +13,7 @@ export default function Settings(): JSX.Element {
   const [syncApiKey, setSyncApiKey] = useState('')
   const [syncSaved, setSyncSaved] = useState(false)
   const [syncLoading, setSyncLoading] = useState(true)
+  const [showApiKey, setShowApiKey] = useState(false)
 
   useEffect(() => {
     window.api.settings
@@ -47,9 +51,9 @@ export default function Settings(): JSX.Element {
           </h2>
           <div className="rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-card dark:shadow-card-dark smooth-theme">
             <div className="p-4">
-              <label className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-3 block">
+              <Label className="mb-3 block text-text-primary-light dark:text-text-primary-dark">
                 主题
-              </label>
+              </Label>
               <div className="flex gap-2">
                 {(
                   [
@@ -58,20 +62,20 @@ export default function Settings(): JSX.Element {
                     { value: 'system', icon: Monitor, label: '跟随系统' }
                   ] as const
                 ).map((item) => (
-                  <button
+                  <Button
                     key={item.value}
+                    variant="outline"
                     onClick={() => setMode(item.value as 'light' | 'dark')}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all',
-                      'border border-border-light dark:border-border-dark',
+                      'h-9 gap-2 rounded-lg px-4 text-sm font-medium',
                       mode === item.value
-                        ? 'bg-accent/15 text-accent border-accent/30'
-                        : 'hover:bg-black/5 dark:hover:bg-white/10 text-text-secondary-light dark:text-text-secondary-dark'
+                        ? 'bg-accent/15 text-accent border-accent/30 hover:bg-accent/15 hover:text-accent'
+                        : 'text-text-secondary-light dark:text-text-secondary-dark'
                     )}
                   >
                     <item.icon size={16} />
                     {item.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -91,54 +95,52 @@ export default function Settings(): JSX.Element {
               </p>
 
               <div>
-                <label className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5 block">
+                <Label htmlFor="sync-base-url" className="mb-1.5 block">
                   Base URL
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="sync-base-url"
                   type="text"
                   value={syncBaseUrl}
                   onChange={(e) => setSyncBaseUrl(e.target.value)}
                   placeholder="https://api.example.com"
                   disabled={syncLoading}
-                  className="w-full px-3 py-2 rounded-lg text-sm
-                             bg-black/5 dark:bg-white/10
-                             border border-border-light dark:border-border-dark
-                             text-text-primary-light dark:text-text-primary-dark
-                             placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark
-                             focus:outline-none focus:border-accent transition-colors"
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1.5 block">
+                <Label htmlFor="sync-api-key" className="mb-1.5 block">
                   API Key
-                </label>
-                <input
-                  type="password"
-                  value={syncApiKey}
-                  onChange={(e) => setSyncApiKey(e.target.value)}
-                  placeholder="sk-..."
-                  disabled={syncLoading}
-                  className="w-full px-3 py-2 rounded-lg text-sm
-                             bg-black/5 dark:bg-white/10
-                             border border-border-light dark:border-border-dark
-                             text-text-primary-light dark:text-text-primary-dark
-                             placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark
-                             focus:outline-none focus:border-accent transition-colors"
-                />
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="sync-api-key"
+                    type={showApiKey ? 'text' : 'password'}
+                    value={syncApiKey}
+                    onChange={(e) => setSyncApiKey(e.target.value)}
+                    placeholder="sk-..."
+                    disabled={syncLoading}
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 size-7 -translate-y-1/2"
+                    onClick={() => setShowApiKey((v) => !v)}
+                    disabled={syncLoading}
+                    aria-label={showApiKey ? '隐藏 API Key' : '显示 API Key'}
+                  >
+                    {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </Button>
+                </div>
               </div>
 
               <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSaveSync}
-                  disabled={syncLoading}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
-                             bg-accent text-white hover:bg-accent-hover
-                             disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
+                <Button onClick={handleSaveSync} disabled={syncLoading}>
                   <Save size={15} />
                   保存
-                </button>
+                </Button>
                 {syncSaved && <span className="text-sm text-accent">已保存</span>}
               </div>
             </div>

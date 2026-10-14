@@ -1,4 +1,5 @@
 import { Cloud, CloudRain, CloudSnow, Sun, Wind, CloudLightning, CloudFog } from 'lucide-react'
+import { Button } from '../ui/button'
 import { cn } from '../../lib/cn'
 
 const WEATHERS = [
@@ -20,12 +21,13 @@ export function WeatherPicker({ value, onChange }: WeatherPickerProps): JSX.Elem
   return (
     <div className="flex flex-wrap gap-1">
       {WEATHERS.map((w) => (
-        <button
+        <Button
           key={w.value}
+          variant="ghost"
+          size="icon"
           onClick={() => onChange(value === w.value ? null : w.value)}
           className={cn(
-            'w-9 h-9 flex items-center justify-center rounded-lg transition-all',
-            'hover:bg-black/5 dark:hover:bg-white/10',
+            'w-9 h-9 rounded-lg',
             value === w.value
               ? 'bg-accent/15 ring-1 ring-accent/30 text-accent'
               : 'text-text-secondary-light dark:text-text-secondary-dark'
@@ -34,7 +36,7 @@ export function WeatherPicker({ value, onChange }: WeatherPickerProps): JSX.Elem
           aria-label={w.label}
         >
           <w.icon size={18} />
-        </button>
+        </Button>
       ))}
     </div>
   )

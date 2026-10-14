@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { ArrowLeft, Edit3, Trash2, Heart } from 'lucide-react'
+import { Button } from '../../components/ui/button'
 import { cn } from '../../lib/cn'
 import type { DiaryEntry } from '../../../../shared/types/diary'
 
@@ -69,41 +70,48 @@ export default function DiaryDetailPage(): JSX.Element {
     <div className="h-full overflow-auto">
       {/* Header */}
       <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-3 bg-mica-light/80 dark:bg-mica-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => navigate('/diary')}
-          className="flex items-center gap-1 text-sm text-text-secondary-light dark:text-text-secondary-dark
-                     hover:text-text-primary-light dark:hover:text-text-primary-dark transition-colors"
+          className="h-auto justify-start gap-1 px-2 py-1.5 text-sm
+                     text-text-secondary-light dark:text-text-secondary-dark
+                     hover:text-text-primary-light dark:hover:text-text-primary-dark"
         >
           <ArrowLeft size={16} />
           <span>返回</span>
-        </button>
+        </Button>
 
         <div className="flex items-center gap-1">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleToggleFavorite}
-            className={cn(
-              'w-8 h-8 flex items-center justify-center rounded-lg transition-colors',
-              'hover:bg-black/5 dark:hover:bg-white/10',
-              entry.isFavorite && 'text-red-400'
-            )}
+            className={cn('w-8 h-8', entry.isFavorite && 'text-red-400')}
             title={entry.isFavorite ? '取消收藏' : '收藏'}
+            aria-label={entry.isFavorite ? '取消收藏' : '收藏'}
           >
             <Heart size={16} className={entry.isFavorite ? 'fill-red-400' : ''} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => navigate(`/diary/${entry.id}/edit`)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+            className="w-8 h-8"
             title="编辑"
+            aria-label="编辑"
           >
             <Edit3 size={16} />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={handleDelete}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
+            className="w-8 h-8 text-red-500 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
             title="删除"
+            aria-label="删除"
           >
             <Trash2 size={16} />
-          </button>
+          </Button>
         </div>
       </div>
 

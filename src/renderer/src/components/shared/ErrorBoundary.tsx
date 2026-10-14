@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from 'react'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { Button } from '../ui/button'
 
 interface Props {
   children: ReactNode
@@ -36,14 +37,10 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
               {this.state.error?.message || '发生了未知错误'}
             </p>
-            <button
-              onClick={this.handleReset}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white
-                         hover:bg-accent-hover transition-colors"
-            >
+            <Button onClick={this.handleReset} className="gap-2">
               <RefreshCw size={16} />
               <span>重试</span>
-            </button>
+            </Button>
           </div>
         </div>
       )

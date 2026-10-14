@@ -1,6 +1,7 @@
 import { BookOpen, PenLine, FolderKanban, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '../lib/cn'
+import { Button } from '../components/ui/button'
 
 const QUICK_ACTIONS = [
   { path: '/diary', icon: BookOpen, label: '写日记', color: 'text-blue-500' },
@@ -28,15 +29,16 @@ export default function Home(): JSX.Element {
         {/* Quick actions */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {QUICK_ACTIONS.map((action) => (
-            <button
+            <Button
               key={action.path}
+              variant="outline"
               onClick={() => navigate(action.path)}
               className={cn(
-                'flex items-center gap-3 p-4 rounded-xl border border-border-light dark:border-border-dark',
+                'h-auto items-center gap-3 rounded-xl p-4',
                 'bg-surface-light dark:bg-surface-dark',
-                'hover:bg-acrylic-light dark:hover:bg-acrylic-dark',
+                'hover:bg-acrylic-light hover:scale-[1.02] dark:hover:bg-acrylic-dark',
                 'shadow-card dark:shadow-card-dark',
-                'transition-all duration-200 hover:scale-[1.02]',
+                'transition-all duration-200',
                 'smooth-theme'
               )}
             >
@@ -44,7 +46,7 @@ export default function Home(): JSX.Element {
               <span className="font-medium text-text-primary-light dark:text-text-primary-dark">
                 {action.label}
               </span>
-            </button>
+            </Button>
           ))}
         </div>
 
