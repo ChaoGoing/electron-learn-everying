@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Upload, Download } from 'lucide-react'
+import { Upload, Download, Loader2 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { cn } from '../../lib/cn'
 import { useSyncStore } from '../../stores/syncStore'
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '../ui/tooltip'
 
 interface SyncToolbarProps {
   onSynced?: () => void
@@ -14,14 +15,15 @@ function formatTime(iso: string): string {
   return d.toLocaleString()
 }
 
-const iconButtonClass =
-  'w-8 h-8 rounded-md text-text-secondary-light dark:text-text-secondary-dark ' +
-  'hover:text-text-primary-light dark:hover:text-text-primary-dark'
+const actionButtonClass =
+  'h-7 w-7 rounded-md text-text-secondary-light dark:text-text-secondary-dark ' +
+  'hover:bg-black/[0.06] hover:text-text-primary-light dark:hover:bg-white/[0.12] dark:hover:text-text-primary-dark'
 
 /**
- * Compact sync controls for the list header: a status dot (at-a-glance state)
- * plus upload/download icon buttons. The detailed status line lives in the
- * dot's tooltip so the header stays a single, uncluttered row.
+ * Compact sync cluster for the list header: one soft pill containing a status
+ * dot plus joined upload/download actions. The upload action carries a pending
+ * count badge. Detailed state (last sync time / errors) lives in the dot's
+ * tooltip so the header stays a single, quiet row.
  */
 export function SyncToolbar({ onSynced }: SyncToolbarProps): JSX.Element {
   const { status, isPushing, isPulling, refresh, push, pull } = useSyncStore()
@@ -70,12 +72,21 @@ export function SyncToolbar({ onSynced }: SyncToolbarProps): JSX.Element {
       (note ? ` · ${note}` : '')
 
   return (
-    <div className="flex items-center gap-1">
-      {/* Sync state dot — details live in the tooltip */}
-      <span
-        className={cn('w-1.5 h-1.5 rounded-full shrink-0', dotClass, busy && 'animate-pulse')}
-        title={statusTitle}
-      />
+    <div className="flex items-center gap-0.5 rounded-md bg-black/[0.04] p-0.5 dark:bg-white/[0.07]">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger className="flex items-center justify-center rounded-md p-1.5">
+            <span
+              className={cn(
+                'block h-1.5 w-1.5 shrink-0 rounded-full',
+                dotClass,
+                busy && 'animate-pulse'
+              )}
+            />
+          </TooltipTrigger>
+          <TooltipContent>{statusTitle}</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <Button
         type="button"
@@ -83,11 +94,19 @@ export function SyncToolbar({ onSynced }: SyncToolbarProps): JSX.Element {
         size="icon"
         onClick={handlePush}
         disabled={busy}
-        className={iconButtonClass}
+        className={cn(actionButtonClass, 'relative')}
         title="上传本地变化到服务器"
         aria-label="上传本地变化到服务器"
       >
-        <Upload size={15} />
+        {isPushing ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+        {status.pendingCount > 0 && (
+          <span
+            className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-amber-400 px-1 text-[9px] font-semibold leading-none text-black"
+            aria-label={`${status.pendingCount} 篇待上传`}
+          >
+            {status.pendingCount}
+          </span>
+        )}
       </Button>
 
       <Button
@@ -96,11 +115,11 @@ export function SyncToolbar({ onSynced }: SyncToolbarProps): JSX.Element {
         size="icon"
         onClick={handlePull}
         disabled={busy}
-        className={iconButtonClass}
+        className={actionButtonClass}
         title="从服务器下载变化"
         aria-label="从服务器下载变化"
       >
-        <Download size={15} />
+        {isPulling ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
       </Button>
     </div>
   )

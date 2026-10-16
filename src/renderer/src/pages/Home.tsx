@@ -6,7 +6,7 @@ import { Button } from '../components/ui/button'
 const QUICK_ACTIONS = [
   { path: '/diary', icon: BookOpen, label: '写日记', color: 'text-blue-500' },
   { path: '/blog', icon: PenLine, label: '写博客', color: 'text-green-500' },
-  { path: '/projects', icon: FolderKanban, label: '项目管理', color: 'text-purple-500' },
+  { path: '/projects', icon: FolderKanban, label: '项目管理', color: 'text-purple-500' }
 ]
 
 export default function Home(): JSX.Element {

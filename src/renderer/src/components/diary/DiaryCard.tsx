@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Edit3, Heart } from 'lucide-react'
+import { Edit3, Trash2 } from 'lucide-react'
 import { Button } from '../ui/button'
 import { cn } from '../../lib/cn'
 import type { DiaryEntry } from '../../../../shared/types/diary'
@@ -30,7 +30,7 @@ interface DiaryCardProps {
   entry: DiaryEntry
   isActive?: boolean
   onClick: () => void
-  onToggleFavorite?: (entry: DiaryEntry) => void
+  onDelete?: (entry: DiaryEntry) => void
   onEdit?: (entry: DiaryEntry) => void
 }
 
@@ -45,101 +45,57 @@ export function DiaryCard({
   entry,
   isActive,
   onClick,
-  onToggleFavorite,
+  onDelete,
   onEdit
 }: DiaryCardProps): JSX.Element {
-  const preview = stripHtml(entry.content).slice(0, 100)
+  const preview = stripHtml(entry.content).slice(0, 80)
   const timeStr = format(new Date(entry.createdAt), 'HH:mm', { locale: zhCN })
 
   return (
     <div
       className={cn(
-        'group relative rounded-xl border transition-all duration-200',
-        'hover:shadow-card dark:hover:shadow-card-dark',
+        'group relative rounded-lg transition-colors duration-150',
         isActive
-          ? 'border-accent/30 bg-accent/5 shadow-card dark:shadow-card-dark'
-          : 'border-transparent hover:bg-surface-light dark:hover:bg-surface-dark'
+          ? 'bg-accent/10 dark:bg-accent/15'
+          : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
       )}
     >
-      {/* Active indicator: left accent bar */}
-      {isActive && (
-        <span
-          className="absolute left-0 top-2 bottom-2 w-[3px] rounded-full bg-accent"
-          aria-hidden="true"
-        />
-      )}
-
       {/* Main open button */}
       <Button
         type="button"
         variant="ghost"
         onClick={onClick}
-        className="block w-full justify-start h-auto rounded-none p-3 text-left
+        className="block h-auto w-full justify-start rounded-lg p-2.5 pr-8 text-left
                    text-text-primary-light dark:text-text-primary-dark"
       >
-        <div className="w-full">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-serif text-sm font-medium text-text-primary-light dark:text-text-primary-dark truncate">
-                {entry.title || '无标题'}
-              </h3>
-              <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-0.5 line-clamp-2">
-                {preview || '空内容'}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-              {timeStr}
-            </span>
-            {entry.mood && MOOD_EMOJIS[entry.mood] && (
-              <span className="text-xs" title={entry.mood}>
-                {MOOD_EMOJIS[entry.mood]}
-              </span>
-            )}
-            {entry.weather && WEATHER_ICONS[entry.weather] && (
-              <span className="text-xs" title={entry.weather}>
-                {WEATHER_ICONS[entry.weather]}
-              </span>
-            )}
-            <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark ml-auto">
-              {entry.wordCount} 字
-            </span>
-          </div>
+        <h3 className="truncate font-serif text-[13px] font-medium leading-5 text-text-primary-light dark:text-text-primary-dark">
+          {entry.title || '无标题'}
+        </h3>
+        {preview && (
+          <p className="mt-0.5 line-clamp-1 text-xs leading-4 text-text-secondary-light dark:text-text-secondary-dark">
+            {preview}
+          </p>
+        )}
+        <div className="mt-1 flex items-center gap-1.5 text-[11px] leading-4 text-text-secondary-light dark:text-text-secondary-dark">
+          <span>{timeStr}</span>
+          {entry.mood && MOOD_EMOJIS[entry.mood] && (
+            <span title={entry.mood}>{MOOD_EMOJIS[entry.mood]}</span>
+          )}
+          {entry.weather && WEATHER_ICONS[entry.weather] && (
+            <span title={entry.weather}>{WEATHER_ICONS[entry.weather]}</span>
+          )}
+          <span className="ml-auto">{entry.wordCount} 字</span>
         </div>
       </Button>
 
-      {/* Quick actions — overlay top-right, revealed on hover / focus. Sibling of the
+      {/* Quick actions — overlay right side, revealed on hover / focus. Sibling of the
           open button so there are no nested interactive elements. */}
       <div
         className={cn(
-          'absolute right-1.5 top-1.5 z-10 flex items-center gap-0.5 rounded-lg p-0.5 transition-opacity',
-          'group-hover:opacity-100 group-focus-within:opacity-100',
-          'group-hover:bg-black/[0.04] group-hover:backdrop-blur-sm dark:group-hover:bg-white/10',
-          'group-focus-within:bg-black/[0.04] group-focus-within:backdrop-blur-sm dark:group-focus-within:bg-white/10',
-          entry.isFavorite ? 'opacity-100' : 'opacity-0'
+          'absolute right-1 top-1 z-10 flex items-center gap-0.5 transition-opacity',
+          'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
         )}
       >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={(): void => onToggleFavorite?.(entry)}
-          title={entry.isFavorite ? '取消收藏' : '收藏'}
-          aria-label={entry.isFavorite ? '取消收藏' : '收藏'}
-          className="w-7 h-7"
-        >
-          <Heart
-            size={14}
-            className={cn(
-              'transition-colors',
-              entry.isFavorite
-                ? 'text-red-400 fill-red-400'
-                : 'text-text-secondary-light dark:text-text-secondary-dark'
-            )}
-          />
-        </Button>
         <Button
           type="button"
           variant="ghost"
@@ -147,9 +103,20 @@ export function DiaryCard({
           onClick={(): void => onEdit?.(entry)}
           title="编辑"
           aria-label="编辑"
-          className="w-7 h-7 text-text-secondary-light dark:text-text-secondary-dark"
+          className="h-6 w-6 text-text-secondary-light hover:text-text-primary-light dark:text-text-secondary-dark dark:hover:text-text-primary-dark"
         >
-          <Edit3 size={14} />
+          <Edit3 size={13} />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={(): void => onDelete?.(entry)}
+          title="删除"
+          aria-label="删除"
+          className="h-6 w-6 text-text-secondary-light hover:bg-red-500/10 hover:text-red-500 dark:text-text-secondary-dark dark:hover:text-red-400"
+        >
+          <Trash2 size={13} />
         </Button>
       </div>
     </div>

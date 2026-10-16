@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* shadcn/ui 依赖的进出场动画（Tooltip/Dialog 等的 animate-in / fade-in 类） */
+@plugin "tailwindcss-animate";
+
 /* ── Windows 11 Design Tokens ── */
 @theme {
   /* Font stack: Segoe UI Variable on Windows, SF Pro on macOS */
@@ -113,9 +116,7 @@ body {
 
 /* ── Focus styles ── */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: none;
 }
 
 /* ─────────────────────────────────────────────────────────────

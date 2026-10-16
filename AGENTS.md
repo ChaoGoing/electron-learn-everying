@@ -2,6 +2,9 @@
 
 本文件是 Codex（及其他编码代理）在本仓库工作时的说明：命令、架构、数据模型与约定。以简练、可直接执行的事实为主，详细设计以文中链接指向的文档为准。
 
+# 语言
+中文
+
 ## 项目概览
 
 - 一个 **Electron 桌面应用**，Windows 11 风格（无边框 `frame: false` + 自定义标题栏 + 左侧导航），**本地优先**，用于记录日记、博客、历史开发项目。
@@ -87,6 +90,7 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 - 合并类名统一用 `cn()`（`src/renderer/src/lib/cn.ts`，clsx + tailwind-merge）。
 - Tailwind v4：主题 token 定义在 `src/renderer/src/styles/index.css` 的 `@theme`，颜色/圆角/阴影用 token，不要硬编码色值。
 - 主题切换：light / dark / system，走 `themeStore`。
+- 按钮圆角不要使用rounded-full，使用小尺寸圆角
 
 ## 数据模型
 
@@ -101,6 +105,9 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
   - `方案.md`：描述"日记模板底座（图文卡片）"改造，其所列 `src/renderer/src/lib/diaryHtml.ts`、`components/diary/templates.ts`、`components/diary/PhotoNoteEditor.tsx` 及 `DiaryEntry.type/blocks` 字段**当前都不在源码中**，属"设计了但尚未落地"。
   - `docs/diary-sync-client-plan.md`：开头写"尚未改代码"，但 `src/main/sync/diary.ts`、`src/renderer/src/stores/syncStore.ts`、`src/renderer/src/components/diary/SyncToolbar.tsx` 等**实际已实现**。
 - 根目录的 `vite.cal-preview.config.mts`、`.cal-preview-main.tsx`、`.cal-preview.html` 是**临时草稿**，非正式入口；正式 Vite 配置是 `electron.vite.config.ts`。
+
+# 代码提交
+使用中文
 
 ## 文档自维护
 

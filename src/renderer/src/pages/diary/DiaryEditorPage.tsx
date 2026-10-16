@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import {
-  ArrowLeft,
   ChevronDown,
   Cloud,
   CloudFog,
@@ -89,14 +88,14 @@ function ContextPopover({ open, onToggle, trigger, children }: ContextPopoverPro
         onClick={(): void => onToggle(!open)}
         aria-expanded={open}
         className={cn(
-          'h-auto gap-1.5 rounded-full border border-transparent px-3 py-1.5 text-sm',
-          'text-text-secondary-light dark:text-text-secondary-dark',
-          'hover:border-border-light dark:hover:border-border-dark',
+          'h-auto gap-1 rounded-full border border-border-light px-2.5 py-1 text-xs',
+          'bg-surface-elevated-light text-text-secondary-light dark:border-border-dark dark:bg-surface-elevated-dark dark:text-text-secondary-dark',
+          'hover:text-text-primary-light dark:hover:text-text-primary-dark',
           open && 'border-accent/40 bg-accent/10 text-accent hover:text-accent'
         )}
       >
         {trigger}
-        <ChevronDown size={14} className={cn('transition-transform', open && 'rotate-180')} />
+        <ChevronDown size={12} className={cn('transition-transform', open && 'rotate-180')} />
       </Button>
       {open && (
         <div className="absolute left-0 top-full z-20 mt-2 rounded-xl border border-border-light bg-surface-light p-2 shadow-elevated dark:border-border-dark dark:bg-surface-dark dark:shadow-elevated-dark">
@@ -109,7 +108,6 @@ function ContextPopover({ open, onToggle, trigger, children }: ContextPopoverPro
 
 export default function DiaryEditorPage(): JSX.Element {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const [entry, setEntry] = useState<DiaryEntry | null>(null)
   const [mood, setMood] = useState<string | null>(null)
   const [weather, setWeather] = useState<string | null>(null)
@@ -171,70 +169,47 @@ export default function DiaryEditorPage(): JSX.Element {
   const weatherLabel = weather ? WEATHER_LABELS[weather] || '天气' : '天气'
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Top bar — minimal */}
-      <div className="flex items-center gap-3 border-b border-border-light px-6 py-2.5 dark:border-border-dark">
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={(): void => {
-            navigate(entry ? `/diary/${entry.id}` : '/diary')
-          }}
-          className="h-auto justify-start gap-1 px-2 py-1.5 text-sm
-                     text-text-secondary-light dark:text-text-secondary-dark
-                     hover:text-text-primary-light dark:hover:text-text-primary-dark"
-        >
-          <ArrowLeft size={16} />
-          <span>返回</span>
-        </Button>
-        <div className="flex-1" />
-        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-          {entry?.id ? '编辑日记' : '新日记'} · 自动保存
-        </span>
-      </div>
-
-      {/* Writing surface — quiet gray mica backdrop */}
-      <div className="flex-1 overflow-y-auto bg-mica-light dark:bg-mica-dark">
-        <div className="mx-auto flex min-h-full max-w-2xl flex-col px-8 py-8">
-          {/* Ambient context strip: date + mood + weather */}
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            {dateStr && (
-              <span className="mr-1 text-sm text-text-secondary-light dark:text-text-secondary-dark">
-                {dateStr}
-              </span>
-            )}
-            <ContextPopover
-              open={moodOpen}
-              onToggle={setMoodOpen}
-              trigger={
-                <>
-                  <span>{moodEmoji}</span>
-                  <span>{moodLabel}</span>
-                </>
-              }
-            >
-              <MoodPicker value={mood} onChange={handleMoodChange} />
-            </ContextPopover>
-            <ContextPopover
-              open={weatherOpen}
-              onToggle={setWeatherOpen}
-              trigger={
-                <>
-                  <WeatherIcon size={15} />
-                  <span>{weatherLabel}</span>
-                </>
-              }
-            >
-              <WeatherPicker value={weather} onChange={handleWeatherChange} />
-            </ContextPopover>
-          </div>
-
-          {/* Paper panel */}
-          <div className="journal-paper flex flex-1 flex-col overflow-hidden rounded-2xl border border-border-light bg-surface-light shadow-card dark:border-border-dark dark:bg-surface-dark dark:shadow-card-dark">
-            <DiaryEditor entry={entry} onSave={handleSave} />
-          </div>
+    <div className="journal-paper flex h-full flex-col overflow-hidden rounded-2xl border border-border-light bg-surface-light shadow-card dark:border-border-dark dark:bg-surface-dark dark:shadow-card-dark">
+      {/* Card header — context chips on the left, autosave status on the right */}
+      <header className="flex items-center justify-between gap-3 border-b border-border-light px-6 py-2.5 dark:border-border-dark">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {dateStr && (
+            <span className="truncate text-xs text-text-secondary-light dark:text-text-secondary-dark">
+              {dateStr}
+            </span>
+          )}
+          <ContextPopover
+            open={moodOpen}
+            onToggle={setMoodOpen}
+            trigger={
+              <>
+                <span>{moodEmoji}</span>
+                <span>{moodLabel}</span>
+              </>
+            }
+          >
+            <MoodPicker value={mood} onChange={handleMoodChange} />
+          </ContextPopover>
+          <ContextPopover
+            open={weatherOpen}
+            onToggle={setWeatherOpen}
+            trigger={
+              <>
+                <WeatherIcon size={13} />
+                <span>{weatherLabel}</span>
+              </>
+            }
+          >
+            <WeatherPicker value={weather} onChange={handleWeatherChange} />
+          </ContextPopover>
         </div>
-      </div>
+        <span className="shrink-0 text-xs text-text-secondary-light dark:text-text-secondary-dark">
+          {entry?.id ? '自动保存' : '新日记 · 自动保存'}
+        </span>
+      </header>
+
+      {/* Title + writing surface + footer live inside the same card */}
+      <DiaryEditor entry={entry} onSave={handleSave} />
     </div>
   )
 }

@@ -163,7 +163,7 @@ export function DiaryEditor({ entry, onSave, className }: DiaryEditorProps): JSX
   const wordCount = editor.storage.characterCount?.words() || 0
 
   return (
-    <div className={cn('flex h-full flex-col', className)}>
+    <div className={cn('flex min-h-0 flex-1 flex-col', className)}>
       {/* Title */}
       <div className="px-8 pt-7 pb-2">
         <Input
@@ -171,10 +171,9 @@ export function DiaryEditor({ entry, onSave, className }: DiaryEditorProps): JSX
           value={title}
           onChange={(e): void => setTitle(e.target.value)}
           placeholder="无标题"
-          className="h-auto border-none bg-transparent px-0 py-0 font-serif text-3xl font-semibold tracking-tight
+          className="h-auto border-none bg-transparent px-0 py-0 text-2xl tracking-tight
                      text-text-primary-light dark:text-text-primary-dark
-                     placeholder:text-text-secondary-light/70 dark:placeholder:text-text-secondary-dark/70
-                     focus:border-none focus:ring-0"
+                     placeholder:text-text-secondary-light/70 dark:placeholder:text-text-secondary-dark/70"
         />
       </div>
 
