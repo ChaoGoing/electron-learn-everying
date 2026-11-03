@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Sun, Moon, Monitor, Save, Eye, EyeOff } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Sun, Moon, Monitor, Save, Eye, EyeOff, PanelsTopLeft } from 'lucide-react'
 import { useThemeStore } from '../../stores/themeStore'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -8,6 +9,7 @@ import { cn } from '../../lib/cn'
 
 export default function Settings(): JSX.Element {
   const { mode, setMode } = useThemeStore()
+  const navigate = useNavigate()
 
   const [syncBaseUrl, setSyncBaseUrl] = useState('')
   const [syncApiKey, setSyncApiKey] = useState('')
@@ -65,7 +67,7 @@ export default function Settings(): JSX.Element {
                   <Button
                     key={item.value}
                     variant="outline"
-                    onClick={() => setMode(item.value as 'light' | 'dark')}
+                    onClick={() => setMode(item.value)}
                     className={cn(
                       'h-9 gap-2 rounded-lg px-4 text-sm font-medium',
                       mode === item.value
@@ -144,6 +146,31 @@ export default function Settings(): JSX.Element {
                 {syncSaved && <span className="text-sm text-accent">已保存</span>}
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Embedded pages */}
+        <section className="mb-8">
+          <h2 className="text-lg font-semibold text-text-primary-light dark:text-text-primary-dark mb-4">
+            嵌入页面
+          </h2>
+          <div className="rounded-xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-card dark:shadow-card-dark smooth-theme p-4">
+            <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mb-3">
+              通过 iframe / webview 接入的外部页面会自动继承当前主题（明暗 +
+              调色板）。子页面接入方式见
+              <code className="mx-1 rounded bg-black/5 px-1.5 py-0.5 text-xs dark:bg-white/10">
+                docs/theme-sync.md
+              </code>
+              。
+            </p>
+            <Button
+              variant="outline"
+              className="h-9 gap-2 rounded-lg text-sm"
+              onClick={() => navigate('/lab/embed')}
+            >
+              <PanelsTopLeft size={16} />
+              打开主题同步演示
+            </Button>
           </div>
         </section>
 

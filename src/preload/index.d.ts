@@ -6,6 +6,7 @@ import type {
   DiaryFilters
 } from '../shared/types/diary'
 import type { SyncSettings, SyncStatus, PushResult, PullResult } from '../shared/types/sync'
+import type { ThemeMode } from '../shared/types/theme'
 
 interface DiaryAPI {
   create(data: CreateDiaryEntry): Promise<DiaryEntry>
@@ -27,6 +28,12 @@ interface SettingsAPI {
   setSync(settings: SyncSettings): Promise<void>
 }
 
+interface ThemeAPI {
+  setNativeTheme(mode: ThemeMode): Promise<ThemeMode>
+  getNativeTheme(): Promise<{ source: ThemeMode; shouldUseDarkColors: boolean }>
+  onSystemThemeChange(callback: (shouldUseDarkColors: boolean) => void): () => void
+}
+
 interface WindowAPI {
   window: {
     minimize: () => void
@@ -36,6 +43,7 @@ interface WindowAPI {
   }
   diary: DiaryAPI
   settings: SettingsAPI
+  theme: ThemeAPI
 }
 
 declare global {

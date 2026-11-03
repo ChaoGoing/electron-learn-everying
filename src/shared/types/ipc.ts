@@ -23,6 +23,12 @@ export const IPC_CHANNELS = {
   SHELL_OPEN_PATH: 'shell:openPath',
   SHELL_OPEN_TERMINAL: 'shell:openTerminal',
   SHELL_OPEN_VSCODE: 'shell:openVscode',
+
+  // Theme (native chrome + embedded pages)
+  THEME_SET_NATIVE_THEME: 'theme:setNativeTheme',
+  THEME_GET_NATIVE_THEME: 'theme:getNativeTheme',
+  /** 主进程 → 渲染进程：系统明暗偏好变化（`nativeTheme` 事件转发）。 */
+  THEME_SYSTEM_CHANGED: 'theme:systemChanged'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]

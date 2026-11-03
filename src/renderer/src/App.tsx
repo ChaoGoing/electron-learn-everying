@@ -1,20 +1,19 @@
 import { useEffect } from 'react'
 import { RouterProvider } from './router/RouterProvider'
 import { ErrorBoundary } from './components/shared/ErrorBoundary'
-import { useThemeStore } from './stores/themeStore'
+import { initTheme } from './stores/themeStore'
+import { initThemeBridge } from './lib/themeBridge'
 
 export function App(): JSX.Element {
-  const resolved = useThemeStore((s) => s.resolved)
-
-  // Apply theme on mount and when it changes
+  // 主题落地（含系统偏好订阅）与子页面下发总线，各启动一次。
   useEffect(() => {
-    const root = document.documentElement
-    if (resolved === 'dark') {
-      root.classList.add('dark')
-    } else {
-      root.classList.add('light')
+    const disposeTheme = initTheme()
+    const disposeBridge = initThemeBridge()
+    return () => {
+      disposeBridge()
+      disposeTheme()
     }
-  }, [resolved])
+  }, [])
 
   return (
     <ErrorBoundary>

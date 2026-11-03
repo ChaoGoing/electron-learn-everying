@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { IPC_CHANNELS } from '../shared/types/ipc'
 import type { SyncSettings } from '../shared/types/sync'
+import type { ThemeMode } from '../shared/types/theme'
 
 // Custom APIs for renderer — typed wrapper around IPC channels
 const api = {
@@ -33,6 +34,27 @@ const api = {
   settings: {
     getSync: () => ipcRenderer.invoke('settings:getSync') as Promise<SyncSettings>,
     setSync: (settings: SyncSettings) => ipcRenderer.invoke('settings:setSync', settings)
+  },
+
+  // Theme — 把应用内的明暗选择同步给主进程 nativeTheme，
+  // 使嵌入页面里的 prefers-color-scheme 与界面一致。
+  theme: {
+    setNativeTheme: (mode: ThemeMode) =>
+      ipcRenderer.invoke(IPC_CHANNELS.THEME_SET_NATIVE_THEME, mode) as Promise<ThemeMode>,
+    getNativeTheme: () =>
+      ipcRenderer.invoke(IPC_CHANNELS.THEME_GET_NATIVE_THEME) as Promise<{
+        source: ThemeMode
+        shouldUseDarkColors: boolean
+      }>,
+    /** 订阅系统明暗变化；返回取消订阅函数。 */
+    onSystemThemeChange: (callback: (shouldUseDarkColors: boolean) => void): (() => void) => {
+      const listener = (_event: unknown, shouldUseDarkColors: boolean): void =>
+        callback(shouldUseDarkColors)
+      ipcRenderer.on(IPC_CHANNELS.THEME_SYSTEM_CHANGED, listener)
+      return () => {
+        ipcRenderer.removeListener(IPC_CHANNELS.THEME_SYSTEM_CHANGED, listener)
+      }
+    }
   }
 }
 

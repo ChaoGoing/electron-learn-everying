@@ -11,6 +11,7 @@ const BlogPage = lazy(() => import('../pages/blog/BlogPage'))
 const ProjectPage = lazy(() => import('../pages/project/ProjectPage'))
 const SearchPage = lazy(() => import('../pages/search/SearchPage'))
 const Settings = lazy(() => import('../pages/settings/Settings'))
+const EmbedDemoPage = lazy(() => import('../pages/lab/EmbedDemoPage'))
 
 // Extended route configuration type
 export interface RouteMeta {
@@ -63,6 +64,10 @@ export const routes: AppRouteObject[] = [
       {
         path: 'settings',
         element: <Settings />,
+      },
+      {
+        path: 'lab/embed',
+        element: <EmbedDemoPage />,
       },
     ],
   },

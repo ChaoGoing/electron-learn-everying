@@ -2,6 +2,7 @@ import { app, shell, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { registerAllHandlers } from './ipc'
+import { installEmbedGuards } from './embed/policy'
 import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -20,9 +21,14 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      // 允许渲染进程用 <webview> 嵌入外部页面（主题会同步下发，见 src/renderer/src/lib/themeBridge.ts）
+      webviewTag: true
     }
   })
+
+  // webview 挂载守卫：收紧权限 + 地址白名单（详见 src/main/embed/policy.ts）
+  installEmbedGuards(mainWindow)
 
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()

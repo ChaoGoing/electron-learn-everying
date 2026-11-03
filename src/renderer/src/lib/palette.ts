@@ -6,17 +6,12 @@
  * override block keyed off `:root[data-palette='<id>']`. Switching a palette
  * therefore re-themes the entire app (sidebar, titlebar, cards …) without
  * touching individual components.
+ *
+ * The palette is part of the theme state and lives in `themeStore`; this module
+ * keeps the id type and the DOM writer so non-React callers stay framework-free.
  */
-export type PaletteId = 'default' | 'journal'
+import type { PaletteId } from '../../../shared/types/theme'
 
-const PALETTE_ATTRIBUTE = 'data-palette'
+export type { PaletteId }
 
-/** Apply a palette to the document root, or restore the default one. */
-export function applyPalette(palette: PaletteId): void {
-  const root = document.documentElement
-  if (palette === 'default') {
-    root.removeAttribute(PALETTE_ATTRIBUTE)
-  } else {
-    root.setAttribute(PALETTE_ATTRIBUTE, palette)
-  }
-}
+export { applyPaletteToDocument as applyPalette } from './theme'
