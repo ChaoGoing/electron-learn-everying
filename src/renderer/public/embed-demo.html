@@ -9,7 +9,7 @@
       脚本会立刻读取 URL 上的 ?theme=&palette=，因此首帧就是正确主题，不会闪白。
       id 固定为 __app-theme-client__，宿主据此判断「无需再注入」。
     -->
-    <script id="__app-theme-client__" src="./theme-client.js"></script>
+    <!-- <script id="__app-theme-client__" src="./theme-client.js"></script> -->
     <style>
       /* 子页面自己的一份兜底样式：全部走宿主下发的语义 token，
          所以调色板/明暗一变，这里自动跟着变，无需任何 JS 逻辑。 */

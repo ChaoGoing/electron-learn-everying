@@ -57,9 +57,36 @@ export function applyPaletteToDocument(palette: PaletteId): void {
 }
 
 /**
+ * 枚举根节点上生效的自定义属性名。
+ *
+ * 注意不能用 `getComputedStyle().item(i)` 遍历：Chromium 的 computed style 声明里
+ * **不含**自定义属性（实测枚举出 0 条 `--*`），只有 CSS Typed OM 的
+ * `computedStyleMap()` 会把它们列出来。名字拿到后仍用 `getComputedStyle` 取值，
+ * 保证拿到的是层叠（含调色板覆盖）之后的结果。
+ */
+function customPropertyNames(root: HTMLElement): string[] {
+  const names: string[] = []
+
+  if (typeof root.computedStyleMap === 'function') {
+    root.computedStyleMap().forEach((_value, name) => {
+      if (name.startsWith('--')) names.push(name)
+    })
+    if (names.length) return names
+  }
+
+  // 兜底：不支持 CSS Typed OM 的引擎退回到遍历声明。
+  const computed = window.getComputedStyle(root)
+  for (let i = 0; i < computed.length; i += 1) {
+    const prop = computed.item(i)
+    if (prop.startsWith('--')) names.push(prop)
+  }
+  return names
+}
+
+/**
  * 采集根节点上所有已生效的语义 token（含当前调色板的覆盖值）。
  *
- * 走 `getComputedStyle` 而不是解析 CSS 文本，好处是浏览器已经替我们算好了
+ * 值走 `getComputedStyle` 而不是解析 CSS 文本，好处是浏览器已经替我们算好了
  * 层叠与调色板覆盖，新增 token 无需改这里。
  */
 export function collectThemeTokens(
@@ -68,12 +95,10 @@ export function collectThemeTokens(
   const tokens: Record<string, string> = {}
   const computed = window.getComputedStyle(root)
 
-  for (let i = 0; i < computed.length; i += 1) {
-    const prop = computed.item(i)
-    if (!prop.startsWith('--')) continue
-    if (!SYNCED_TOKEN_PREFIXES.some((prefix) => prop.startsWith(prefix))) continue
-    const value = computed.getPropertyValue(prop).trim()
-    if (value) tokens[prop] = value
+  for (const name of customPropertyNames(root)) {
+    if (!SYNCED_TOKEN_PREFIXES.some((prefix) => name.startsWith(prefix))) continue
+    const value = computed.getPropertyValue(name).trim()
+    if (value) tokens[name] = value
   }
 
   return tokens

@@ -7,9 +7,13 @@
  * ```
  *
  * 主题同步由 `themeBridge` 负责，组件只做三件事：
- *   1. 把当前明暗/调色板拼进 `src` 查询参数（子页面首帧即正确，无闪烁）；
+ *   1. 挂载时把当时的明暗/调色板拼进 `src` 查询参数（子页面首帧即正确，无闪烁）；
  *   2. 在加载完成事件（iframe `load` / webview `dom-ready`）时触发首次下发；
  *   3. 把元素注册进总线，之后主题变化自动推送。
+ *
+ * 注意 `src` 请传绝对地址：相对地址会被浏览器按**当前路由**解析（如 `/lab/embed`
+ * 下的 `./x.html` 变成 `/lab/x.html`），指向 `public/` 里的静态页时用
+ * `resolvePublicAsset()`（`lib/appBase.ts`）先转成绝对地址。
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Loader2, AlertTriangle } from 'lucide-react'
@@ -76,9 +80,13 @@ export function EmbeddedPage({
   onError,
   overlay
 }: EmbeddedPageProps): JSX.Element {
-  // 订阅这两个字段，任何变化都会让 URL 查询参数与下发内容同步刷新。
+  // 订阅这两个字段，主题变化时重算下发内容（URL 查询参数只在挂载时固化，见下）。
   const resolved = useThemeStore((s) => s.resolved)
   const palette = useThemeStore((s) => s.palette)
+
+  // 首帧 URL 只取挂载那一刻的主题：此后主题变化走 postMessage 实时下发，
+  // 若把 resolved/palette 放进 src，改 `src` 属性会让子页面整页重载（丢状态、闪一下）。
+  const [initialTheme] = useState(() => ({ resolved, palette }))
 
   const hostRef = useRef<HTMLDivElement | null>(null)
   const elementRef = useRef<HTMLElement | null>(null)
@@ -87,8 +95,8 @@ export function EmbeddedPage({
   const [errorMessage, setErrorMessage] = useState('')
 
   const effectiveSrc = useMemo(
-    () => (injectQuery ? withThemeQuery(src, { resolved, palette }) : src),
-    [src, injectQuery, resolved, palette]
+    () => (injectQuery ? withThemeQuery(src, initialTheme) : src),
+    [src, injectQuery, initialTheme]
   )
 
   const effectiveOrigin = useMemo(

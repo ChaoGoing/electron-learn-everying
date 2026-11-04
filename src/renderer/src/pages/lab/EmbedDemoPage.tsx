@@ -7,11 +7,16 @@ import { RefreshCw } from 'lucide-react'
 import { EmbeddedPage } from '../../components/embed/EmbeddedPage'
 import { Button } from '../../components/ui/button'
 import { useThemeStore } from '../../stores/themeStore'
+import { resolvePublicAsset } from '../../lib/appBase'
 import { cn } from '../../lib/cn'
 import type { EmbedKind } from '../../lib/themeBridge'
 
-/** 子页面地址：开发态由 Vite 伺服，打包后与渲染产物同目录。 */
-const DEMO_SRC = './embed-demo.html'
+/**
+ * 子页面地址：开发态由 Vite 伺服，打包后与渲染产物同目录。
+ * 必须走 `resolvePublicAsset` 解析成绝对地址——路由是 `/lab/embed`，
+ * 直接写相对路径会被解析到 `/lab/` 下而 404（表现为子页面空白）。
+ */
+const DEMO_SRC = resolvePublicAsset('embed-demo.html')
 
 export default function EmbedDemoPage(): JSX.Element {
   const [kind, setKind] = useState<EmbedKind>('iframe')
