@@ -1,4 +1,5 @@
 # electron-learn-everything
+
 记录日记，博客，历史开发项目等的个人个性化记录应用
 
 ## Project Setup

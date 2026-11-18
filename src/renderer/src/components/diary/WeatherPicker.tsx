@@ -9,7 +9,7 @@ const WEATHERS = [
   { value: 'snowy', icon: CloudSnow, label: '雪' },
   { value: 'windy', icon: Wind, label: '风' },
   { value: 'stormy', icon: CloudLightning, label: '雷暴' },
-  { value: 'foggy', icon: CloudFog, label: '雾' },
+  { value: 'foggy', icon: CloudFog, label: '雾' }
 ]
 
 interface WeatherPickerProps {

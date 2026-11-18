@@ -21,7 +21,7 @@ export const useSearchStore = create<SearchState>((set) => ({
   query: '',
   results: [],
   isLoading: false,
-  setQuery: (query) => set({ query }),
-  setResults: (results) => set({ results }),
-  setLoading: (isLoading) => set({ isLoading }),
+  setQuery: (query): void => set({ query }),
+  setResults: (results): void => set({ results }),
+  setLoading: (isLoading): void => set({ isLoading })
 }))

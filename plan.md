@@ -3,6 +3,7 @@
 ## 项目目标
 
 将当前 Electron 项目改造为 Windows 11 风格的桌面客户端，用于管理：
+
 - **日记** — 富文本编辑器，日历视图，心情/天气标签，全文搜索
 - **博客** — Markdown 编辑 + 实时预览，Front Matter，草稿/发布，导出
 - **开发项目** — 项目看板，任务管理，代码片段，笔记，快捷链接
@@ -11,17 +12,17 @@
 
 ## 技术栈决策
 
-| 领域 | 选型 | 理由 |
-|------|------|------|
-| 状态管理 | **Zustand** | 轻量、无样板代码、支持组件外调用（适合 IPC 监听） |
-| 数据存储 | **本地文件系统 (Markdown/JSON)** | 无需编译原生模块，数据透明可直接用编辑器打开，方便 Git 版本控制 |
-| 日记编辑器 | **Tiptap** (基于 ProseMirror) | 富文本所见即所得，支持图片、表情、任务列表 |
-| 博客编辑器 | **Milkdown** (基于 ProseMirror) | Markdown 编辑器 + 实时预览，与 Tiptap 共享 ProseMirror 内核 |
-| 代码片段编辑器 | **CodeMirror 6** | 轻量、语法高亮、多语言支持 |
-| 拖拽 (任务看板) | **@dnd-kit** | 现代、TypeScript 优先、无障碍 |
-| 动画 | **framer-motion** | 页面过渡、微交互 |
-| 图标 | **lucide-react** | 线条风格，适合 Windows 11 Fluent 设计语言 |
-| 窗口方案 | `frame: false` (跨平台无边框) | 替代 macOS-only 的 `titleBarStyle: 'hidden'` |
+| 领域            | 选型                             | 理由                                                            |
+| --------------- | -------------------------------- | --------------------------------------------------------------- |
+| 状态管理        | **Zustand**                      | 轻量、无样板代码、支持组件外调用（适合 IPC 监听）               |
+| 数据存储        | **本地文件系统 (Markdown/JSON)** | 无需编译原生模块，数据透明可直接用编辑器打开，方便 Git 版本控制 |
+| 日记编辑器      | **Tiptap** (基于 ProseMirror)    | 富文本所见即所得，支持图片、表情、任务列表                      |
+| 博客编辑器      | **Milkdown** (基于 ProseMirror)  | Markdown 编辑器 + 实时预览，与 Tiptap 共享 ProseMirror 内核     |
+| 代码片段编辑器  | **CodeMirror 6**                 | 轻量、语法高亮、多语言支持                                      |
+| 拖拽 (任务看板) | **@dnd-kit**                     | 现代、TypeScript 优先、无障碍                                   |
+| 动画            | **framer-motion**                | 页面过渡、微交互                                                |
+| 图标            | **lucide-react**                 | 线条风格，适合 Windows 11 Fluent 设计语言                       |
+| 窗口方案        | `frame: false` (跨平台无边框)    | 替代 macOS-only 的 `titleBarStyle: 'hidden'`                    |
 
 ---
 
@@ -262,6 +263,7 @@ App
 ```
 
 **日记条目格式 (JSON):**
+
 ```json
 {
   "id": "uuid",
@@ -278,6 +280,7 @@ App
 ```
 
 **博客文章格式 (Markdown + YAML front matter):**
+
 ```markdown
 ---
 id: uuid
@@ -300,13 +303,13 @@ excerpt: 这是我的第一篇博客文章
 
 ## 关键第三方包
 
-| 阶段 | 包 | 用途 |
-|------|------|------|
-| 1 | zustand, fs-extra, electron-log, framer-motion, lucide-react, clsx, tailwind-merge, react-error-boundary | 状态管理、文件操作、日志、动画、图标、工具 ✅ |
-| 2 | @tiptap/react + 扩展包, date-fns | 日记编辑器 ✅ |
-| 3 | @milkdown/crepe + 插件, react-markdown, remark-gfm, rehype-highlight, gray-matter | 博客编辑器 |
-| 4 | @dnd-kit/core + sortable, @codemirror/* 系列 | 拖拽 + 代码编辑 |
-| 5 | react-hot-toast, react-virtuoso | 通知 + 虚拟滚动 |
+| 阶段 | 包                                                                                                       | 用途                                          |
+| ---- | -------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| 1    | zustand, fs-extra, electron-log, framer-motion, lucide-react, clsx, tailwind-merge, react-error-boundary | 状态管理、文件操作、日志、动画、图标、工具 ✅ |
+| 2    | @tiptap/react + 扩展包, date-fns                                                                         | 日记编辑器 ✅                                 |
+| 3    | @milkdown/crepe + 插件, react-markdown, remark-gfm, rehype-highlight, gray-matter                        | 博客编辑器                                    |
+| 4    | @dnd-kit/core + sortable, @codemirror/\* 系列                                                            | 拖拽 + 代码编辑                               |
+| 5    | react-hot-toast, react-virtuoso                                                                          | 通知 + 虚拟滚动                               |
 
 ---
 
@@ -346,14 +349,14 @@ src/
 
 ## 潜在风险与应对
 
-| 风险 | 应对 |
-|------|------|
-| 文件数量增长后搜索变慢 | 维护 `index.json` 内存索引缓存，增量更新；数据量超千条时再考虑迁移到 SQLite |
-| 无边框窗口跨平台不一致 | 在 window.ts 中抽象平台检查，Windows/macOS/Linux 分别测试 |
-| Tiptap/Milkdown 打包体积大 | React.lazy 代码分割，编辑器组件懒加载 |
-| CSP 限制 Tiptap 动态样式 | 允许 `'unsafe-inline'` styles（必要妥协） |
-| 大日记含大量图片 | 主进程用 sharp 压缩图片（最大 1920px 宽） |
-| 文件并发写入冲突 | 主进程单线程处理所有 IPC，天然串行化；使用 `writeFile` 原子操作 |
+| 风险                       | 应对                                                                        |
+| -------------------------- | --------------------------------------------------------------------------- |
+| 文件数量增长后搜索变慢     | 维护 `index.json` 内存索引缓存，增量更新；数据量超千条时再考虑迁移到 SQLite |
+| 无边框窗口跨平台不一致     | 在 window.ts 中抽象平台检查，Windows/macOS/Linux 分别测试                   |
+| Tiptap/Milkdown 打包体积大 | React.lazy 代码分割，编辑器组件懒加载                                       |
+| CSP 限制 Tiptap 动态样式   | 允许 `'unsafe-inline'` styles（必要妥协）                                   |
+| 大日记含大量图片           | 主进程用 sharp 压缩图片（最大 1920px 宽）                                   |
+| 文件并发写入冲突           | 主进程单线程处理所有 IPC，天然串行化；使用 `writeFile` 原子操作             |
 
 ---
 

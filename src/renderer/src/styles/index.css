@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* shadcn/ui 依赖的进出场动画（Tooltip/Dialog 等的 animate-in / fade-in 类） */
 @plugin "tailwindcss-animate";
@@ -6,10 +6,11 @@
 /* ── Windows 11 Design Tokens ── */
 @theme {
   /* Font stack: Segoe UI Variable on Windows, SF Pro on macOS */
-  --font-sans: "Segoe UI Variable", "SF Pro Display", -apple-system, BlinkMacSystemFont,
-    "Helvetica Neue", sans-serif;
-  --font-mono: "Cascadia Code", "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
-  --font-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --font-sans:
+    'Segoe UI Variable', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Helvetica Neue',
+    sans-serif;
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
+  --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
 
   /* Windows 11 accent colors */
   --color-accent: #60a5fa;
@@ -92,7 +93,10 @@ body {
 
 /* ── Smooth transitions ── */
 .smooth-theme {
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 /* ── Scrollbar styling (Windows 11 style) ── */
@@ -144,7 +148,7 @@ body {
 
   /* Borders — warm hairline */
   --color-border-light: rgba(101, 78, 51, 0.16);
-  --color-border-dark: rgba(255, 244, 222, 0.10);
+  --color-border-dark: rgba(255, 244, 222, 0.1);
 
   /* Text — warm ink */
   --color-text-primary-light: #453b2d;
@@ -153,7 +157,7 @@ body {
   --color-text-secondary-dark: rgba(243, 235, 217, 0.62);
 
   /* Softer, warmer shadows */
-  --shadow-card: 0 2px 12px rgba(101, 78, 51, 0.10);
+  --shadow-card: 0 2px 12px rgba(101, 78, 51, 0.1);
   --shadow-card-dark: 0 2px 12px rgba(0, 0, 0, 0.5);
   --shadow-elevated: 0 6px 24px rgba(101, 78, 51, 0.14);
   --shadow-elevated-dark: 0 6px 24px rgba(0, 0, 0, 0.6);

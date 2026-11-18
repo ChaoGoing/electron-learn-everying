@@ -44,34 +44,34 @@ graph TD
   end
 ```
 
-| 进程 | 目录 | 职责 |
-|------|------|------|
-| main（主进程） | `src/main/` | 创建窗口、注册 IPC handler、本地文件读写（`storage/`）、同步（`sync/`）、`nativeTheme` 同步（`ipc/theme.ts`）、webview 挂载守卫（`embed/policy.ts`） |
-| preload | `src/preload/` | `contextBridge` 把 `window.api` / `window.electron` 暴露给渲染进程，`index.d.ts` 提供类型 |
-| renderer（渲染进程） | `src/renderer/` | React 界面：`pages`（路由页）、`components`（`ui`/`layout`/`diary`/`embed`…）、`stores`（Zustand）、`router`、`lib`（含主题核心 `theme.ts` 与下发总线 `themeBridge.ts`） |
-| renderer（子页面运行时） | `src/renderer/src/embedded/theme-client.js` | **分发给子页面仓库**的零依赖主题接收端，不属于应用自身的 TS 源码（详见 [§8](#8-嵌入页面与主题同步)） |
-| shared（共享） | `src/shared/types/` | 跨进程共享类型与 IPC 频道常量（`diary` / `sync` / `theme` / `ipc`） |
+| 进程                     | 目录                                        | 职责                                                                                                                                                                     |
+| ------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| main（主进程）           | `src/main/`                                 | 创建窗口、注册 IPC handler、本地文件读写（`storage/`）、同步（`sync/`）、`nativeTheme` 同步（`ipc/theme.ts`）、webview 挂载守卫（`embed/policy.ts`）                     |
+| preload                  | `src/preload/`                              | `contextBridge` 把 `window.api` / `window.electron` 暴露给渲染进程，`index.d.ts` 提供类型                                                                                |
+| renderer（渲染进程）     | `src/renderer/`                             | React 界面：`pages`（路由页）、`components`（`ui`/`layout`/`diary`/`embed`…）、`stores`（Zustand）、`router`、`lib`（含主题核心 `theme.ts` 与下发总线 `themeBridge.ts`） |
+| renderer（子页面运行时） | `src/renderer/src/embedded/theme-client.js` | **分发给子页面仓库**的零依赖主题接收端，不属于应用自身的 TS 源码（详见 [§8](#8-嵌入页面与主题同步)）                                                                     |
+| shared（共享）           | `src/shared/types/`                         | 跨进程共享类型与 IPC 频道常量（`diary` / `sync` / `theme` / `ipc`）                                                                                                      |
 
 **典型调用链**：`Pages → stores → window.api.<域>.<动作> → ipcRenderer.invoke → ipcMain.handle → storage/sync → 本地文件 / 远程 HTTP`。
 
 ## 3. 核心设计决策（ADR 摘要）
 
-| 决策点 | 选择 | 理由 |
-|--------|------|------|
-| 状态管理 | **Zustand** | 轻量、少样板、可在组件外调用（适合 IPC 回写触发刷新） |
-| 数据存储 | **本地文件（Markdown/JSON）** | 无需编译原生模块，数据透明可外部编辑，便于 Git 版本管理 |
-| 日记编辑器 | **Tiptap**（ProseMirror） | 所见即所得，支持图片/任务列表/高亮，正文存 HTML |
-| 跨进程契约 | **类型化 IPC** | 频道常量 + `window.api` 类型 + handler 三层，编译期校验 |
-| 窗口方案 | `frame: false` + 自定义标题栏 | 跨平台统一无边框，替代 macOS-only 的 `titleBarStyle` |
-| 删除语义 | **墓碑软删**（`deletedAt`） | 删除需随同步传播，不能物理消失 |
-| 主题 | 语义 token + `@theme` + scoped palette | 明暗模式与"日记暖色手帐"等换肤都不改组件内部 |
-| 主题事实源 | **`themeStore`（Zustand）单点**，明暗与调色板同源 | 组件不再各自读写 `localStorage`（旧 `ThemeToggle` 会绕过主进程同步与子页面下发） |
-| 主题下发内容 | 下发**算好的 CSS 变量值**，而非仅 `mode` | 子页面无需重复定义调色板，`index.css` 新增 token 自动传播 |
-| 首帧无闪烁 | 把 `theme` / `palette` 拼进子页面 URL 查询参数 | 子页面解析 HTML 时即可落地，不必等宿主消息；完整 token 表仍走消息 |
-| 嵌入方式 | **iframe 与 `<webview>` 双通道** | iframe 通用、可跨源；webview 可注入任意页面（含跨源）且支持 `executeJavaScript` |
-| 嵌入安全 | `will-attach-webview` 阶段统一收口 | 剥离子页面 preload、强制 `sandbox`/`contextIsolation`、`file://` 仅限应用自身产物 |
-| 客户端分发 | 单一源码 `theme-client.js`，Vite 插件同时供给 `?raw` 注入与 URL 引用 | 避免"注入用一份、子页面引用另一份"的双拷贝漂移 |
-| 路由 | `createBrowserRouter` + `React.lazy` + Suspense | 按页代码分割，编辑器等重组件首屏不阻塞 |
+| 决策点       | 选择                                                                 | 理由                                                                              |
+| ------------ | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 状态管理     | **Zustand**                                                          | 轻量、少样板、可在组件外调用（适合 IPC 回写触发刷新）                             |
+| 数据存储     | **本地文件（Markdown/JSON）**                                        | 无需编译原生模块，数据透明可外部编辑，便于 Git 版本管理                           |
+| 日记编辑器   | **Tiptap**（ProseMirror）                                            | 所见即所得，支持图片/任务列表/高亮，正文存 HTML                                   |
+| 跨进程契约   | **类型化 IPC**                                                       | 频道常量 + `window.api` 类型 + handler 三层，编译期校验                           |
+| 窗口方案     | `frame: false` + 自定义标题栏                                        | 跨平台统一无边框，替代 macOS-only 的 `titleBarStyle`                              |
+| 删除语义     | **墓碑软删**（`deletedAt`）                                          | 删除需随同步传播，不能物理消失                                                    |
+| 主题         | 语义 token + `@theme` + scoped palette                               | 明暗模式与"日记暖色手帐"等换肤都不改组件内部                                      |
+| 主题事实源   | **`themeStore`（Zustand）单点**，明暗与调色板同源                    | 组件不再各自读写 `localStorage`（旧 `ThemeToggle` 会绕过主进程同步与子页面下发）  |
+| 主题下发内容 | 下发**算好的 CSS 变量值**，而非仅 `mode`                             | 子页面无需重复定义调色板，`index.css` 新增 token 自动传播                         |
+| 首帧无闪烁   | 把 `theme` / `palette` 拼进子页面 URL 查询参数                       | 子页面解析 HTML 时即可落地，不必等宿主消息；完整 token 表仍走消息                 |
+| 嵌入方式     | **iframe 与 `<webview>` 双通道**                                     | iframe 通用、可跨源；webview 可注入任意页面（含跨源）且支持 `executeJavaScript`   |
+| 嵌入安全     | `will-attach-webview` 阶段统一收口                                   | 剥离子页面 preload、强制 `sandbox`/`contextIsolation`、`file://` 仅限应用自身产物 |
+| 客户端分发   | 单一源码 `theme-client.js`，Vite 插件同时供给 `?raw` 注入与 URL 引用 | 避免"注入用一份、子页面引用另一份"的双拷贝漂移                                    |
+| 路由         | `createBrowserRouter` + `React.lazy` + Suspense                      | 按页代码分割，编辑器等重组件首屏不阻塞                                            |
 
 ## 4. 数据模型与本地存储
 
@@ -81,13 +81,13 @@ graph TD
 interface DiaryEntry {
   id: string
   title: string
-  content: string        // Tiptap 生成的 HTML，是列表/详情/全文搜索的唯一数据源
+  content: string // Tiptap 生成的 HTML，是列表/详情/全文搜索的唯一数据源
   mood: string | null
   weather: string | null
   tags: string[]
   isFavorite: boolean
   wordCount: number
-  createdAt: string      // ISO 8601
+  createdAt: string // ISO 8601
   updatedAt: string
   deletedAt: string | null // 墓碑：非空即已删除
 }
@@ -136,13 +136,13 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 
 ### 6.1 Zustand stores（`src/renderer/src/stores/`）
 
-| Store | 形态 | 职责 |
-|-------|------|------|
-| `syncStore` | **action 型** | 唯一含异步动作的 store：`push/pull/refresh` 调 `window.api.diary.*`，维护 `isPushing/isPulling/status` |
-| `themeStore` | **action 型** | **主题的唯一事实源**：`mode: light/dark/system` + `resolved` + `palette`；负责 `localStorage` 持久化、写 `<html>` 的 `.dark/.light`/`data-theme`/`data-palette`/`color-scheme`、同步主进程 `nativeTheme`、订阅系统偏好。配套的 `initTheme()` 在 `App` 挂载时启动一次 |
-| `diaryStore` | 数据型 | `entries/selectedDate/isLoading` + setters（页面组件直接调 `window.api.diary.*` 后回写） |
-| `blogStore` / `projectStore` / `searchStore` | 数据型（占位） | 定义领域 shape + setters，尚未接入 IPC |
-| `settingsStore` | 本地偏好 | `autoSave/editorFontSize/language`，**仅在内存**，未持久化（与主进程 `settings.json` 的同步设置有别） |
+| Store                                        | 形态           | 职责                                                                                                                                                                                                                                                                 |
+| -------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `syncStore`                                  | **action 型**  | 唯一含异步动作的 store：`push/pull/refresh` 调 `window.api.diary.*`，维护 `isPushing/isPulling/status`                                                                                                                                                               |
+| `themeStore`                                 | **action 型**  | **主题的唯一事实源**：`mode: light/dark/system` + `resolved` + `palette`；负责 `localStorage` 持久化、写 `<html>` 的 `.dark/.light`/`data-theme`/`data-palette`/`color-scheme`、同步主进程 `nativeTheme`、订阅系统偏好。配套的 `initTheme()` 在 `App` 挂载时启动一次 |
+| `diaryStore`                                 | 数据型         | `entries/selectedDate/isLoading` + setters（页面组件直接调 `window.api.diary.*` 后回写）                                                                                                                                                                             |
+| `blogStore` / `projectStore` / `searchStore` | 数据型（占位） | 定义领域 shape + setters，尚未接入 IPC                                                                                                                                                                                                                               |
+| `settingsStore`                              | 本地偏好       | `autoSave/editorFontSize/language`，**仅在内存**，未持久化（与主进程 `settings.json` 的同步设置有别）                                                                                                                                                                |
 
 ### 6.2 路由（`src/renderer/src/router/`）
 
@@ -163,16 +163,16 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 
 ### 7.1 主题相关模块分工
 
-| 模块 | 位置 | 职责 |
-|------|------|------|
-| `lib/theme.ts` | 渲染进程 | 与框架无关的核心：`resolveMode` / `applyThemeToDocument` / `applyPaletteToDocument` / `collectThemeTokens` |
-| `stores/themeStore.ts` | 渲染进程 | 状态与副作用编排：持久化、DOM 落地、`nativeTheme` 同步、系统偏好订阅 |
-| `lib/themeBridge.ts` | 渲染进程 | 下发总线：生成快照、注册目标、广播、应答子页面请求 |
-| `components/embed/EmbeddedPage.tsx` | 渲染进程 | 接入外部页面的统一组件（iframe / webview），自动挂到总线上 |
-| `embedded/theme-client.js` | 子页面（分发） | 接收端：解析查询参数 + 监听消息 + 写入 token |
-| `shared/types/theme.ts` | 共享 | 协议常量与 `ThemePayload` 类型 |
-| `main/ipc/theme.ts` | 主进程 | `nativeTheme.themeSource` 读写 + 系统明暗变化广播 |
-| `main/embed/policy.ts` | 主进程 | webview 挂载白名单与权限收紧 |
+| 模块                                | 位置           | 职责                                                                                                       |
+| ----------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------- |
+| `lib/theme.ts`                      | 渲染进程       | 与框架无关的核心：`resolveMode` / `applyThemeToDocument` / `applyPaletteToDocument` / `collectThemeTokens` |
+| `stores/themeStore.ts`              | 渲染进程       | 状态与副作用编排：持久化、DOM 落地、`nativeTheme` 同步、系统偏好订阅                                       |
+| `lib/themeBridge.ts`                | 渲染进程       | 下发总线：生成快照、注册目标、广播、应答子页面请求                                                         |
+| `components/embed/EmbeddedPage.tsx` | 渲染进程       | 接入外部页面的统一组件（iframe / webview），自动挂到总线上                                                 |
+| `embedded/theme-client.js`          | 子页面（分发） | 接收端：解析查询参数 + 监听消息 + 写入 token                                                               |
+| `shared/types/theme.ts`             | 共享           | 协议常量与 `ThemePayload` 类型                                                                             |
+| `main/ipc/theme.ts`                 | 主进程         | `nativeTheme.themeSource` 读写 + 系统明暗变化广播                                                          |
+| `main/embed/policy.ts`              | 主进程         | webview 挂载白名单与权限收紧                                                                               |
 
 ## 8. 嵌入页面与主题同步
 
@@ -200,11 +200,11 @@ themeStore（明暗 + 调色板）
 
 ```ts
 interface ThemePayload {
-  version: number                     // 协议版本，当前 1
-  mode: 'light' | 'dark' | 'system'   // 用户选择的模式
-  resolved: 'light' | 'dark'          // 解析后的实际明暗，子页面直接用这个
-  palette: 'default' | 'journal'      // 当前调色板
-  tokens: Record<string, string>      // 语义 token → 计算值，如 { '--color-accent': '#c8735a' }
+  version: number // 协议版本，当前 1
+  mode: 'light' | 'dark' | 'system' // 用户选择的模式
+  resolved: 'light' | 'dark' // 解析后的实际明暗，子页面直接用这个
+  palette: 'default' | 'journal' // 当前调色板
+  tokens: Record<string, string> // 语义 token → 计算值，如 { '--color-accent': '#c8735a' }
   updatedAt: string
 }
 
@@ -219,11 +219,11 @@ interface ThemePayload {
 
 `themeBridge` 按目标类型自动选路，调用方无感：
 
-| 目标 | 客户端从哪来 | 首帧无闪烁 | 完整 token 下发 |
-|------|--------------|-----------|-----------------|
-| `<webview>` | 宿主 `executeJavaScript` 注入（跨源亦可） | URL 查询参数 | `executeJavaScript('window.__APP_THEME__.apply(…)')` |
-| iframe（同源） | 宿主注入 `<script>`，或子页面自带 | URL 查询参数 | `contentWindow.postMessage` |
-| iframe（跨源） | **只能**子页面自带（浏览器不允许注入） | URL 查询参数 | `postMessage`，`targetOrigin` 由 `src` 推导 |
+| 目标           | 客户端从哪来                              | 首帧无闪烁   | 完整 token 下发                                      |
+| -------------- | ----------------------------------------- | ------------ | ---------------------------------------------------- |
+| `<webview>`    | 宿主 `executeJavaScript` 注入（跨源亦可） | URL 查询参数 | `executeJavaScript('window.__APP_THEME__.apply(…)')` |
+| iframe（同源） | 宿主注入 `<script>`，或子页面自带         | URL 查询参数 | `contentWindow.postMessage`                          |
+| iframe（跨源） | **只能**子页面自带（浏览器不允许注入）    | URL 查询参数 | `postMessage`，`targetOrigin` 由 `src` 推导          |
 
 两段式下发是刻意的：
 
@@ -243,8 +243,13 @@ interface ThemePayload {
 引入后子页面只需消费变量，**没有任何主题逻辑**：
 
 ```css
-:root { --color-accent: #60a5fa; }        /* 兜底值 */
-html[data-theme='dark'] body { background: var(--color-mica-dark); color: var(--color-text-primary-dark); }
+:root {
+  --color-accent: #60a5fa;
+} /* 兜底值 */
+html[data-theme='dark'] body {
+  background: var(--color-mica-dark);
+  color: var(--color-text-primary-dark);
+}
 ```
 
 **兜底做法**（第三方页面，拿不到源码）：宿主 `injectClient` 默认开启，会在 iframe `load` / webview `dom-ready` 时注入同一份脚本。此时首帧仍会闪一下默认主题——这是无法避免的，因为注入发生在文档加载之后。
@@ -275,12 +280,12 @@ html[data-theme='dark'] body { background: var(--color-mica-dark); color: var(--
 
 ```tsx
 <EmbeddedPage
-  kind="iframe"          // 或 'webview'
+  kind="iframe" // 或 'webview'
   src="https://example.com/app"
   title="外部应用"
-  injectClient           // 跨源 iframe 请设为 false，改由子页面自带客户端
-  injectQuery            // 默认开启，负责首帧无闪烁
-  targetOrigin="https://example.com"   // 跨源必填，与子页面自身源一致
+  injectClient // 跨源 iframe 请设为 false，改由子页面自带客户端
+  injectQuery // 默认开启，负责首帧无闪烁
+  targetOrigin="https://example.com" // 跨源必填，与子页面自身源一致
 />
 ```
 
@@ -296,11 +301,11 @@ html[data-theme='dark'] body { background: var(--color-mica-dark); color: var(--
 
 主题相关频道（已统一在 `IPC_CHANNELS`）：
 
-| 频道 | 方向 | 用途 |
-|------|------|------|
-| `theme:setNativeTheme` | invoke | 把 `mode` 写给 `nativeTheme.themeSource` |
-| `theme:getNativeTheme` | invoke | 读回 `{ source, shouldUseDarkColors }` |
-| `theme:systemChanged` | 主 → 渲染 | `nativeTheme` 的 `updated` 事件转发，供「跟随系统」重算 |
+| 频道                   | 方向      | 用途                                                    |
+| ---------------------- | --------- | ------------------------------------------------------- |
+| `theme:setNativeTheme` | invoke    | 把 `mode` 写给 `nativeTheme.themeSource`                |
+| `theme:getNativeTheme` | invoke    | 读回 `{ source, shouldUseDarkColors }`                  |
+| `theme:systemChanged`  | 主 → 渲染 | `nativeTheme` 的 `updated` 事件转发，供「跟随系统」重算 |
 
 **现状缺口**：`window/app/file/shell/theme` 已统一到共享 `IPC_CHANNELS`；`diary/settings/sync` 的频道常量仍分散在 `main/ipc/diary.ts`、`main/ipc/sync.ts` 的本地 `CHANNELS`，`preload` 中仍为硬编码字符串，改造时应顺手迁移。
 

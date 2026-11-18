@@ -15,17 +15,17 @@
 
 涉及的决策总表：
 
-| 决策 | 结论 |
-|------|------|
-| 触发 | 手动，两个独立按钮（上传 / 下载） |
-| 方向 | 双向，分别触发 |
-| 范围 | 仅日记正文+元数据，不含图片附件 |
-| 粒度 | 增量（`updatedAt` 游标） |
-| 冲突 | 后写覆盖（`updatedAt` 新者胜） |
-| 删除 | 墓碑软删 `deletedAt` |
-| 首次对齐 | 按 `id` 合并 |
-| 鉴权 | `Authorization: Bearer <apiKey>`，apiKey 存本地设置 |
-| 上传 | 批量 `POST /entries/sync` |
+| 决策     | 结论                                                |
+| -------- | --------------------------------------------------- |
+| 触发     | 手动，两个独立按钮（上传 / 下载）                   |
+| 方向     | 双向，分别触发                                      |
+| 范围     | 仅日记正文+元数据，不含图片附件                     |
+| 粒度     | 增量（`updatedAt` 游标）                            |
+| 冲突     | 后写覆盖（`updatedAt` 新者胜）                      |
+| 删除     | 墓碑软删 `deletedAt`                                |
+| 首次对齐 | 按 `id` 合并                                        |
+| 鉴权     | `Authorization: Bearer <apiKey>`，apiKey 存本地设置 |
+| 上传     | 批量 `POST /entries/sync`                           |
 
 ---
 
@@ -47,7 +47,7 @@ export interface DiaryEntry {
   wordCount: number
   createdAt: string
   updatedAt: string
-  deletedAt: string | null   // 新增：墓碑，存量文件缺省为 null
+  deletedAt: string | null // 新增：墓碑，存量文件缺省为 null
 }
 ```
 
@@ -158,7 +158,10 @@ export async function listEntriesForSync(since: string): Promise<DiaryEntry[]>
 ## 5. 新增配置存储（`src/main/storage/settings.ts`）
 
 ```ts
-export interface SyncSettings { syncBaseUrl: string; syncApiKey: string }
+export interface SyncSettings {
+  syncBaseUrl: string
+  syncApiKey: string
+}
 export async function getSyncSettings(): Promise<SyncSettings>
 export async function setSyncSettings(s: SyncSettings): Promise<void>
 ```
@@ -207,7 +210,7 @@ settings: {
 export interface SyncStatus {
   lastPushAt: string | null
   lastPullAt: string | null
-  pendingCount: number   // 待上传条数
+  pendingCount: number // 待上传条数
   lastError: string | null
 }
 ```
@@ -242,35 +245,35 @@ Zustand store，持有 `SyncStatus` + `isPushing` / `isPulling` 两个 loading �
 
 ## 8. 改动文件清单
 
-| 文件 | 改动 |
-|------|------|
-| `src/shared/types/diary.ts` | `DiaryEntry` 加 `deletedAt`；新增 `SyncStatus` |
-| `src/main/storage/diary.ts` | 软删、过滤墓碑、`listEntriesForSync`、索引含 `deletedAt` |
-| `src/main/storage/settings.ts` | **新**：`getSyncSettings` / `setSyncSettings` |
-| `src/main/sync/diary.ts` | **新**：push / pull / 游标推进 |
-| `src/main/ipc/sync.ts` | **新**：注册 sync/settings handler |
-| `src/main/ipc/index.ts` | 注册新 handler |
-| `src/preload/index.ts` | 暴露 `diary.push/pull/getSyncStatus` + `settings` |
-| `src/preload/index.d.ts` | 补齐类型 |
-| `src/renderer/src/stores/syncStore.ts` | **新**：同步状态 |
-| `src/renderer/src/components/diary/SyncToolbar.tsx` | **新**：上传/下载按钮 + 状态 |
-| `src/renderer/src/components/diary/DiaryList.tsx` | 头部接入 SyncToolbar |
-| `src/renderer/src/pages/settings/Settings.tsx` | 新增同步设置 section |
+| 文件                                                | 改动                                                     |
+| --------------------------------------------------- | -------------------------------------------------------- |
+| `src/shared/types/diary.ts`                         | `DiaryEntry` 加 `deletedAt`；新增 `SyncStatus`           |
+| `src/main/storage/diary.ts`                         | 软删、过滤墓碑、`listEntriesForSync`、索引含 `deletedAt` |
+| `src/main/storage/settings.ts`                      | **新**：`getSyncSettings` / `setSyncSettings`            |
+| `src/main/sync/diary.ts`                            | **新**：push / pull / 游标推进                           |
+| `src/main/ipc/sync.ts`                              | **新**：注册 sync/settings handler                       |
+| `src/main/ipc/index.ts`                             | 注册新 handler                                           |
+| `src/preload/index.ts`                              | 暴露 `diary.push/pull/getSyncStatus` + `settings`        |
+| `src/preload/index.d.ts`                            | 补齐类型                                                 |
+| `src/renderer/src/stores/syncStore.ts`              | **新**：同步状态                                         |
+| `src/renderer/src/components/diary/SyncToolbar.tsx` | **新**：上传/下载按钮 + 状态                             |
+| `src/renderer/src/components/diary/DiaryList.tsx`   | 头部接入 SyncToolbar                                     |
+| `src/renderer/src/pages/settings/Settings.tsx`      | 新增同步设置 section                                     |
 
 ---
 
 ## 9. 边界与风险
 
-| 场景 | 处理 |
-|------|------|
-| 首次同步（两端各有数据） | 先 **下载**（无 since 全量，按 id 合并），再 **上传**（补齐另一端） |
-| 上传期间有新编辑 | 快照游标，新编辑留到下一批 |
-| 下载收到未知 id 的墓碑 | 忽略，不创建内容 |
-| 请求失败 / 离线 | 游标不变，状态区报错，按钮可重试 |
-| 时钟偏差 | 信任各设备 `updatedAt`（NTP 已基本保证） |
-| API Key 泄露风险 | key 明文存本地设置；正式环境建议后端启用 HTTPS |
-| 本地存量 JSON 无 `deletedAt` | 读取时 `?? null` 兜底 |
-| 墓碑文件长期堆积 | 后续可选：定期把久远墓碑物理清理 |
+| 场景                         | 处理                                                                |
+| ---------------------------- | ------------------------------------------------------------------- |
+| 首次同步（两端各有数据）     | 先 **下载**（无 since 全量，按 id 合并），再 **上传**（补齐另一端） |
+| 上传期间有新编辑             | 快照游标，新编辑留到下一批                                          |
+| 下载收到未知 id 的墓碑       | 忽略，不创建内容                                                    |
+| 请求失败 / 离线              | 游标不变，状态区报错，按钮可重试                                    |
+| 时钟偏差                     | 信任各设备 `updatedAt`（NTP 已基本保证）                            |
+| API Key 泄露风险             | key 明文存本地设置；正式环境建议后端启用 HTTPS                      |
+| 本地存量 JSON 无 `deletedAt` | 读取时 `?? null` 兜底                                               |
+| 墓碑文件长期堆积             | 后续可选：定期把久远墓碑物理清理                                    |
 
 ---
 

@@ -9,7 +9,7 @@ const MOODS = [
   { value: 'tired', emoji: '😴', label: '疲惫' },
   { value: 'sad', emoji: '😢', label: '难过' },
   { value: 'anxious', emoji: '😰', label: '焦虑' },
-  { value: 'angry', emoji: '😤', label: '生气' },
+  { value: 'angry', emoji: '😤', label: '生气' }
 ]
 
 interface MoodPickerProps {
@@ -28,9 +28,7 @@ export function MoodPicker({ value, onChange }: MoodPickerProps): JSX.Element {
           onClick={() => onChange(value === mood.value ? null : mood.value)}
           className={cn(
             'w-9 h-9 rounded-lg text-lg',
-            value === mood.value
-              ? 'bg-accent/15 ring-1 ring-accent/30 scale-110'
-              : 'bg-transparent'
+            value === mood.value ? 'bg-accent/15 ring-1 ring-accent/30 scale-110' : 'bg-transparent'
           )}
           title={mood.label}
           aria-label={mood.label}

@@ -26,7 +26,7 @@ export const useDiaryStore = create<DiaryState>((set) => ({
   entries: [],
   selectedDate: null,
   isLoading: false,
-  setEntries: (entries) => set({ entries }),
-  setSelectedDate: (selectedDate) => set({ selectedDate }),
-  setLoading: (isLoading) => set({ isLoading }),
+  setEntries: (entries): void => set({ entries }),
+  setSelectedDate: (selectedDate): void => set({ selectedDate }),
+  setLoading: (isLoading): void => set({ isLoading })
 }))

@@ -150,17 +150,26 @@
   <body>
     <h1>子页面</h1>
     <p>
-      这个页面不包含任何主题切换逻辑，它只是消费宿主下发的 token。切换左上角/设置里的主题，或导航到日记模块换调色板，这里会同步变化。
+      这个页面不包含任何主题切换逻辑，它只是消费宿主下发的
+      token。切换左上角/设置里的主题，或导航到日记模块换调色板，这里会同步变化。
     </p>
 
     <div class="card">
-      <div class="row"><span class="key">data-theme</span><span class="val" id="v-theme">—</span></div>
-      <div class="row"><span class="key">data-palette</span><span class="val" id="v-palette">—</span></div>
-      <div class="row"><span class="key">协议版本</span><span class="val" id="v-version">—</span></div>
+      <div class="row">
+        <span class="key">data-theme</span><span class="val" id="v-theme">—</span>
+      </div>
+      <div class="row">
+        <span class="key">data-palette</span><span class="val" id="v-palette">—</span>
+      </div>
+      <div class="row">
+        <span class="key">协议版本</span><span class="val" id="v-version">—</span>
+      </div>
       <div class="row">
         <span class="key">prefers-color-scheme</span><span class="val" id="v-media">—</span>
       </div>
-      <div class="row"><span class="key">收到 token 数</span><span class="val" id="v-tokens">—</span></div>
+      <div class="row">
+        <span class="key">收到 token 数</span><span class="val" id="v-tokens">—</span>
+      </div>
       <div class="row">
         <span class="key">最后更新</span><span class="val" id="v-updated">—</span>
       </div>
@@ -190,10 +199,13 @@
 
       function render() {
         var state = theme && theme.state
-        document.getElementById('v-theme').textContent = document.documentElement.dataset.theme || '—'
+        document.getElementById('v-theme').textContent =
+          document.documentElement.dataset.theme || '—'
         document.getElementById('v-palette').textContent =
           document.documentElement.dataset.palette || 'default'
-        document.getElementById('v-version').textContent = state ? String(state.version) : '等待宿主…'
+        document.getElementById('v-version').textContent = state
+          ? String(state.version)
+          : '等待宿主…'
         document.getElementById('v-media').textContent = window.matchMedia(
           '(prefers-color-scheme: dark)'
         ).matches

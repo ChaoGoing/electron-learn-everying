@@ -1,47 +1,63 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { IPC_CHANNELS } from '../shared/types/ipc'
-import type { SyncSettings } from '../shared/types/sync'
+import type {
+  CreateDiaryEntry,
+  DiaryEntry,
+  DiaryFilters,
+  UpdateDiaryEntry
+} from '../shared/types/diary'
+import type { PullResult, PushResult, SyncSettings, SyncStatus } from '../shared/types/sync'
 import type { ThemeMode } from '../shared/types/theme'
 
-// Custom APIs for renderer — typed wrapper around IPC channels
+// Custom APIs for renderer — typed wrapper around IPC channels。
+// 这里的方法签名需与 `index.d.ts` 的 `WindowAPI` 保持一致，
+// 渲染进程拿到的 `window.api` 类型即来自该声明文件。
 const api = {
   // Window controls
   window: {
-    minimize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
-    maximize: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
-    close: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
-    isMaximized: () => ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED) as Promise<boolean>
+    minimize: (): void => ipcRenderer.send(IPC_CHANNELS.WINDOW_MINIMIZE),
+    maximize: (): void => ipcRenderer.send(IPC_CHANNELS.WINDOW_MAXIMIZE),
+    close: (): void => ipcRenderer.send(IPC_CHANNELS.WINDOW_CLOSE),
+    isMaximized: (): Promise<boolean> =>
+      ipcRenderer.invoke(IPC_CHANNELS.WINDOW_IS_MAXIMIZED) as Promise<boolean>
   },
 
   // Diary
   diary: {
-    create: (data: unknown) => ipcRenderer.invoke('diary:create', data),
-    update: (id: string, data: unknown) => ipcRenderer.invoke('diary:update', id, data),
-    delete: (id: string) => ipcRenderer.invoke('diary:delete', id),
-    get: (id: string) => ipcRenderer.invoke('diary:get', id),
-    list: (filters?: unknown) => ipcRenderer.invoke('diary:list', filters || {}),
-    search: (query: string) => ipcRenderer.invoke('diary:search', query),
-    getByDate: (date: string) => ipcRenderer.invoke('diary:getByDate', date),
-    getDates: (year: number, month: number) => ipcRenderer.invoke('diary:getDates', year, month),
-    uploadImage: () => ipcRenderer.invoke('diary:uploadImage') as Promise<string | null>,
-    push: () => ipcRenderer.invoke('diary:push'),
-    pull: () => ipcRenderer.invoke('diary:pull'),
-    getSyncStatus: () => ipcRenderer.invoke('diary:getSyncStatus')
+    create: (data: CreateDiaryEntry): Promise<DiaryEntry> =>
+      ipcRenderer.invoke('diary:create', data),
+    update: (id: string, data: UpdateDiaryEntry): Promise<DiaryEntry | null> =>
+      ipcRenderer.invoke('diary:update', id, data),
+    delete: (id: string): Promise<void> => ipcRenderer.invoke('diary:delete', id),
+    get: (id: string): Promise<DiaryEntry | null> => ipcRenderer.invoke('diary:get', id),
+    list: (filters?: DiaryFilters): Promise<DiaryEntry[]> =>
+      ipcRenderer.invoke('diary:list', filters || {}),
+    search: (query: string): Promise<DiaryEntry[]> => ipcRenderer.invoke('diary:search', query),
+    getByDate: (date: string): Promise<DiaryEntry[]> => ipcRenderer.invoke('diary:getByDate', date),
+    getDates: (year: number, month: number): Promise<string[]> =>
+      ipcRenderer.invoke('diary:getDates', year, month),
+    uploadImage: (): Promise<string | null> =>
+      ipcRenderer.invoke('diary:uploadImage') as Promise<string | null>,
+    push: (): Promise<PushResult> => ipcRenderer.invoke('diary:push'),
+    pull: (): Promise<PullResult> => ipcRenderer.invoke('diary:pull'),
+    getSyncStatus: (): Promise<SyncStatus> => ipcRenderer.invoke('diary:getSyncStatus')
   },
 
   // Settings
   settings: {
-    getSync: () => ipcRenderer.invoke('settings:getSync') as Promise<SyncSettings>,
-    setSync: (settings: SyncSettings) => ipcRenderer.invoke('settings:setSync', settings)
+    getSync: (): Promise<SyncSettings> =>
+      ipcRenderer.invoke('settings:getSync') as Promise<SyncSettings>,
+    setSync: (settings: SyncSettings): Promise<void> =>
+      ipcRenderer.invoke('settings:setSync', settings)
   },
 
   // Theme — 把应用内的明暗选择同步给主进程 nativeTheme，
   // 使嵌入页面里的 prefers-color-scheme 与界面一致。
   theme: {
-    setNativeTheme: (mode: ThemeMode) =>
+    setNativeTheme: (mode: ThemeMode): Promise<ThemeMode> =>
       ipcRenderer.invoke(IPC_CHANNELS.THEME_SET_NATIVE_THEME, mode) as Promise<ThemeMode>,
-    getNativeTheme: () =>
+    getNativeTheme: (): Promise<{ source: ThemeMode; shouldUseDarkColors: boolean }> =>
       ipcRenderer.invoke(IPC_CHANNELS.THEME_GET_NATIVE_THEME) as Promise<{
         source: ThemeMode
         shouldUseDarkColors: boolean

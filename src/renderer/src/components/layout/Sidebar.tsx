@@ -23,7 +23,7 @@ const NAV_ITEMS: NavEntry[] = [
   { path: '/diary', icon: BookOpen, label: '日记' },
   { path: '/blog', icon: PenLine, label: '博客' },
   { path: '/projects', icon: FolderKanban, label: '项目' },
-  { path: '/search', icon: Search, label: '搜索' },
+  { path: '/search', icon: Search, label: '搜索' }
 ]
 
 export function Sidebar(): JSX.Element {
@@ -31,7 +31,7 @@ export function Sidebar(): JSX.Element {
   const navigate = useNavigate()
   const [startOpen, setStartOpen] = useState(false)
 
-  const isActive = (path: string) => {
+  const isActive = (path: string): boolean => {
     if (path === '/') return location.pathname === '/'
     return location.pathname.startsWith(path)
   }

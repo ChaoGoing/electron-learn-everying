@@ -33,7 +33,7 @@ export const routes: AppRouteObject[] = [
     children: [
       {
         index: true,
-        element: <Home />,
+        element: <Home />
       },
       {
         path: 'diary',
@@ -41,34 +41,34 @@ export const routes: AppRouteObject[] = [
         children: [
           {
             path: ':id',
-            element: <DiaryDetailPage />,
+            element: <DiaryDetailPage />
           },
           {
             path: ':id/edit',
-            element: <DiaryEditorPage />,
-          },
-        ],
+            element: <DiaryEditorPage />
+          }
+        ]
       },
       {
         path: 'blog',
-        element: <BlogPage />,
+        element: <BlogPage />
       },
       {
         path: 'projects',
-        element: <ProjectPage />,
+        element: <ProjectPage />
       },
       {
         path: 'search',
-        element: <SearchPage />,
+        element: <SearchPage />
       },
       {
         path: 'settings',
-        element: <Settings />,
+        element: <Settings />
       },
       {
         path: 'lab/embed',
-        element: <EmbedDemoPage />,
-      },
-    ],
-  },
+        element: <EmbedDemoPage />
+      }
+    ]
+  }
 ]

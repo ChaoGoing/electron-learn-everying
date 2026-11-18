@@ -36,8 +36,8 @@ export const useBlogStore = create<BlogState>((set) => ({
   tags: [],
   filterStatus: 'all',
   isLoading: false,
-  setPosts: (posts) => set({ posts }),
-  setTags: (tags) => set({ tags }),
-  setFilterStatus: (filterStatus) => set({ filterStatus }),
-  setLoading: (isLoading) => set({ isLoading }),
+  setPosts: (posts): void => set({ posts }),
+  setTags: (tags): void => set({ tags }),
+  setFilterStatus: (filterStatus): void => set({ filterStatus }),
+  setLoading: (isLoading): void => set({ isLoading })
 }))

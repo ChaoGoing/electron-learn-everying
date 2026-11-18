@@ -3,6 +3,7 @@
 本文件是 Codex（及其他编码代理）在本仓库工作时的说明：命令、架构、数据模型与约定。以简练、可直接执行的事实为主，详细设计以文中链接指向的文档为准。
 
 # 语言
+
 中文
 
 ## 项目概览
@@ -13,17 +14,19 @@
 
 ## 常用命令
 
-| 命令 | 作用 |
-|------|------|
-| `npm run dev` | 启动开发（electron-vite dev，渲染进程 HMR） |
-| `npm start` | 预览已构建产物（electron-vite preview） |
-| `npm run build` | 类型检查 + electron-vite build（产物在 `out/`） |
-| `npm run build:mac` / `build:win` / `build:linux` | 打平台安装包（electron-builder） |
-| `npm run typecheck` | `typecheck:node` + `typecheck:web` |
-| `npm run lint` | ESLint |
-| `npm run format` | Prettier 全量格式化 |
+| 命令                                              | 作用                                            |
+| ------------------------------------------------- | ----------------------------------------------- |
+| `npm run dev`                                     | 启动开发（electron-vite dev，渲染进程 HMR）     |
+| `npm start`                                       | 预览已构建产物（electron-vite preview）         |
+| `npm run build`                                   | 类型检查 + electron-vite build（产物在 `out/`） |
+| `npm run build:mac` / `build:win` / `build:linux` | 打平台安装包（electron-builder）                |
+| `npm run typecheck`                               | `typecheck:node` + `typecheck:web`              |
+| `npm run lint`                                    | ESLint                                          |
+| `npm run format`                                  | Prettier 全量格式化                             |
 
 - **提交 / 收工前必须 `npm run typecheck` 与 `npm run lint` 通过。**
+- `format` 只管排版（Prettier），不修 lint 规则。`lint` 基于 `@electron-toolkit/eslint-config-ts`，其中 `explicit-function-return-type`、`no-explicit-any` 均为 **error**：所有函数（含箭头函数、store 的 setter）必须显式写返回类型（`void` / `Promise<T>` / `JSX.Element`），不得用 `any`。
+- 仅两处**有意豁免**（改动时勿顺手删掉）：`ui/button.tsx` 的 `buttonVariants` 同文件导出（`react-refresh/only-export-components`），以及 `router/RouterProvider.tsx` 剔除 `meta` 时的解构变量（`no-unused-vars`）。
 - 本项目**暂无测试基础设施**（Vitest / React Testing Library 未配置）。不要声称"跑过测试"，也无需写入测试代码。
 
 ## 目录结构
@@ -107,6 +110,7 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 - 根目录的 `vite.cal-preview.config.mts`、`.cal-preview-main.tsx`、`.cal-preview.html` 是**临时草稿**，非正式入口；正式 Vite 配置是 `electron.vite.config.ts`。
 
 # 代码提交
+
 使用中文
 
 ## 文档自维护

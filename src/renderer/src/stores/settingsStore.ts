@@ -16,8 +16,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   autoSaveInterval: 2000,
   editorFontSize: 16,
   language: 'zh-CN',
-  setAutoSave: (autoSave) => set({ autoSave }),
-  setAutoSaveInterval: (autoSaveInterval) => set({ autoSaveInterval }),
-  setEditorFontSize: (editorFontSize) => set({ editorFontSize }),
-  setLanguage: (language) => set({ language }),
+  setAutoSave: (autoSave): void => set({ autoSave }),
+  setAutoSaveInterval: (autoSaveInterval): void => set({ autoSaveInterval }),
+  setEditorFontSize: (editorFontSize): void => set({ editorFontSize }),
+  setLanguage: (language): void => set({ language })
 }))

@@ -8,7 +8,7 @@ import {
   searchEntries,
   getEntriesByDate,
   getDatesWithEntries,
-  uploadImage,
+  uploadImage
 } from '../storage/diary'
 import type { CreateDiaryEntry, UpdateDiaryEntry, DiaryFilters } from '../../shared/types/diary'
 
@@ -21,7 +21,7 @@ const CHANNELS = {
   DIARY_SEARCH: 'diary:search',
   DIARY_GET_BY_DATE: 'diary:getByDate',
   DIARY_GET_DATES: 'diary:getDates',
-  DIARY_UPLOAD_IMAGE: 'diary:uploadImage',
+  DIARY_UPLOAD_IMAGE: 'diary:uploadImage'
 }
 
 export function registerDiaryHandlers(): void {

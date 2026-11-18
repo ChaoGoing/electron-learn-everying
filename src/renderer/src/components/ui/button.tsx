@@ -54,4 +54,7 @@ function Button({
   )
 }
 
+// buttonVariants 是 shadcn 约定的同文件导出（calendar 等组件需要复用），
+// 它只是样式表的生成函数，不影响 Button 的 Fast Refresh。
+// eslint-disable-next-line react-refresh/only-export-components
 export { Button, buttonVariants }

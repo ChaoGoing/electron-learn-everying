@@ -74,7 +74,8 @@ export function DiaryCalendar({
         weekStartsOn={0}
         classNames={{ root: 'w-full' }}
         formatters={{
-          formatCaption: (monthDate) => `${MONTH_NAMES[monthDate.getMonth()]} ${monthDate.getFullYear()}`,
+          formatCaption: (monthDate) =>
+            `${MONTH_NAMES[monthDate.getMonth()]} ${monthDate.getFullYear()}`,
           formatWeekdayName: (weekday) => WEEKDAYS[weekday.getDay()]
         }}
         labels={{

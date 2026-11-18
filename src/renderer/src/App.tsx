@@ -9,7 +9,7 @@ export function App(): JSX.Element {
   useEffect(() => {
     const disposeTheme = initTheme()
     const disposeBridge = initThemeBridge()
-    return () => {
+    return (): void => {
       disposeBridge()
       disposeTheme()
     }

@@ -1,6 +1,6 @@
-import { FC } from 'react';
-import { Outlet } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
+import { FC } from 'react'
+import { Outlet } from 'react-router-dom'
+import ThemeToggle from '../components/ThemeToggle'
 
 const MainLayout: FC = () => {
   return (
@@ -16,7 +16,7 @@ const MainLayout: FC = () => {
         <Outlet />
       </main>
     </div>
-  );
-};
+  )
+}
 
-export default MainLayout;
+export default MainLayout
