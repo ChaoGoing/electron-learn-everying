@@ -3,7 +3,8 @@ import type {
   DiaryEntry,
   CreateDiaryEntry,
   UpdateDiaryEntry,
-  DiaryFilters
+  DiaryFilters,
+  ImageAsset
 } from '../shared/types/diary'
 import type { SyncSettings, SyncStatus, PushResult, PullResult } from '../shared/types/sync'
 import type { ThemeMode } from '../shared/types/theme'
@@ -18,6 +19,8 @@ interface DiaryAPI {
   getByDate(date: string): Promise<DiaryEntry[]>
   getDates(year: number, month: number): Promise<string[]>
   uploadImage(): Promise<string | null>
+  uploadImages(): Promise<string[]>
+  listImages(): Promise<ImageAsset[]>
   push(): Promise<PushResult>
   pull(): Promise<PullResult>
   getSyncStatus(): Promise<SyncStatus>

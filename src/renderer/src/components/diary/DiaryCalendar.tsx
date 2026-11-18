@@ -10,20 +10,6 @@ interface DiaryCalendarProps {
   onMonthChange: (year: number, month: number) => void
 }
 
-const MONTH_NAMES = [
-  '一月',
-  '二月',
-  '三月',
-  '四月',
-  '五月',
-  '六月',
-  '七月',
-  '八月',
-  '九月',
-  '十月',
-  '十一月',
-  '十二月'
-]
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 /** Format a Date as a local `YYYY-MM-DD` string (matches the diary API). */
@@ -71,11 +57,12 @@ export function DiaryCalendar({
         }}
         onMonthChange={(nextMonth) => onMonthChange(nextMonth.getFullYear(), nextMonth.getMonth())}
         showOutsideDays={false}
-        weekStartsOn={0}
+        // 与卡片板的迷你月历、回顾页的热度图保持一致：周一为一周首日。
+        weekStartsOn={1}
         classNames={{ root: 'w-full' }}
         formatters={{
           formatCaption: (monthDate) =>
-            `${MONTH_NAMES[monthDate.getMonth()]} ${monthDate.getFullYear()}`,
+            `${monthDate.getFullYear()} · ${monthDate.getMonth() + 1}月`,
           formatWeekdayName: (weekday) => WEEKDAYS[weekday.getDay()]
         }}
         labels={{

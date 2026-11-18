@@ -5,6 +5,7 @@ import type {
   CreateDiaryEntry,
   DiaryEntry,
   DiaryFilters,
+  ImageAsset,
   UpdateDiaryEntry
 } from '../shared/types/diary'
 import type { PullResult, PushResult, SyncSettings, SyncStatus } from '../shared/types/sync'
@@ -26,30 +27,34 @@ const api = {
   // Diary
   diary: {
     create: (data: CreateDiaryEntry): Promise<DiaryEntry> =>
-      ipcRenderer.invoke('diary:create', data),
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_CREATE, data),
     update: (id: string, data: UpdateDiaryEntry): Promise<DiaryEntry | null> =>
-      ipcRenderer.invoke('diary:update', id, data),
-    delete: (id: string): Promise<void> => ipcRenderer.invoke('diary:delete', id),
-    get: (id: string): Promise<DiaryEntry | null> => ipcRenderer.invoke('diary:get', id),
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_UPDATE, id, data),
+    delete: (id: string): Promise<void> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_DELETE, id),
+    get: (id: string): Promise<DiaryEntry | null> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_GET, id),
     list: (filters?: DiaryFilters): Promise<DiaryEntry[]> =>
-      ipcRenderer.invoke('diary:list', filters || {}),
-    search: (query: string): Promise<DiaryEntry[]> => ipcRenderer.invoke('diary:search', query),
-    getByDate: (date: string): Promise<DiaryEntry[]> => ipcRenderer.invoke('diary:getByDate', date),
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_LIST, filters || {}),
+    search: (query: string): Promise<DiaryEntry[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_SEARCH, query),
+    getByDate: (date: string): Promise<DiaryEntry[]> =>
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_GET_BY_DATE, date),
     getDates: (year: number, month: number): Promise<string[]> =>
-      ipcRenderer.invoke('diary:getDates', year, month),
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_GET_DATES, year, month),
     uploadImage: (): Promise<string | null> =>
-      ipcRenderer.invoke('diary:uploadImage') as Promise<string | null>,
-    push: (): Promise<PushResult> => ipcRenderer.invoke('diary:push'),
-    pull: (): Promise<PullResult> => ipcRenderer.invoke('diary:pull'),
-    getSyncStatus: (): Promise<SyncStatus> => ipcRenderer.invoke('diary:getSyncStatus')
+      ipcRenderer.invoke(IPC_CHANNELS.DIARY_UPLOAD_IMAGE) as Promise<string | null>,
+    uploadImages: (): Promise<string[]> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_UPLOAD_IMAGES),
+    listImages: (): Promise<ImageAsset[]> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_LIST_IMAGES),
+    push: (): Promise<PushResult> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_PUSH),
+    pull: (): Promise<PullResult> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_PULL),
+    getSyncStatus: (): Promise<SyncStatus> => ipcRenderer.invoke(IPC_CHANNELS.DIARY_GET_SYNC_STATUS)
   },
 
   // Settings
   settings: {
     getSync: (): Promise<SyncSettings> =>
-      ipcRenderer.invoke('settings:getSync') as Promise<SyncSettings>,
+      ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET_SYNC) as Promise<SyncSettings>,
     setSync: (settings: SyncSettings): Promise<void> =>
-      ipcRenderer.invoke('settings:setSync', settings)
+      ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SET_SYNC, settings)
   },
 
   // Theme — 把应用内的明暗选择同步给主进程 nativeTheme，

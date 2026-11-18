@@ -4,7 +4,7 @@
 
 将当前 Electron 项目改造为 Windows 11 风格的桌面客户端，用于管理：
 
-- **日记** — 富文本编辑器，日历视图，心情/天气标签，全文搜索
+- **日记** — 卡片式页面（文字/照片/摘录/清单/心情/音乐/天气/位置）、卡片板与拖拽编排、日历、月度回顾
 - **博客** — Markdown 编辑 + 实时预览，Front Matter，草稿/发布，导出
 - **开发项目** — 项目看板，任务管理，代码片段，笔记，快捷链接
 
@@ -29,7 +29,7 @@
 ## 当前进度总览
 
 - [x] **阶段 1：基础层** — Windows 11 外壳 + 架构 + 数据层 ✅ 已完成
-- [x] **阶段 2：日记模块** — 富文本编辑器 + 日历 + 列表 ✅ 已完成
+- [x] **阶段 2：日记模块** — 卡片式页面 + 卡片板 + 编排模式 + 回顾 ✅ 已完成
 - [ ] **阶段 3：博客模块** — Markdown 编辑器 + 标签管理 + 导出
 - [ ] **阶段 4：开发项目模块** — 项目看板 + 任务 + 代码片段
 - [ ] **阶段 5：通用功能 + 打磨** — 全局搜索 + 设置 + 快捷键 + 优化
@@ -83,38 +83,64 @@ src/renderer/src/components/shared/ErrorBoundary.tsx # 全局错误边界
 
 ---
 
-## 阶段 2：日记模块 部分完成
+## 阶段 2：日记模块 ✅ 已完成（卡片式重构）
 
-**目标：** 完整的日记功能，包含富文本编辑、日历导航、心情/天气标签、图片附件和搜索。
+**目标：** 完整的日记功能——卡片式页面编排、日历导航、心情/天气标签、图片附件、月度回顾。
 
-**已完成步骤：**
+**已完成的步骤（第一轮：富文本底座）**
 
-1. ✅ **文件存储层** — `src/main/storage/diary.ts` 基于文件系统的 CRUD 操作，按年/月目录存储 JSON，`index.json` 索引加速
-2. ✅ **IPC 处理器** — `src/main/ipc/diary.ts` 9 个处理器 (create/update/delete/get/list/search/getByDate/getDates/uploadImage)
-3. ✅ **Tiptap 编辑器** — `DiaryEditor.tsx`，工具栏 + 气泡菜单 + 自动保存（2s 防抖）+ Ctrl+S 手动保存
-4. ✅ **心情/天气选择器** — `MoodPicker.tsx`（8 种 emoji 心情）+ `WeatherPicker.tsx`（7 种天气图标）
-5. ✅ **日历视图** — `DiaryCalendar.tsx`，月视图网格，有日记的日期标记点，回到今天按钮
-6. ✅ **日记列表** — `DiaryList.tsx` + `DiaryCard.tsx`，卡片展示（标题/心情/天气/字数/收藏）
-7. ✅ **图片附件** — 存储到 `userData/images/`，通过 IPC 文件对话框选择
-8. ✅ **日记页面** — `DiaryPage.tsx`（左侧栏日历+列表），`DiaryDetailPage.tsx`（详情展示），`DiaryEditorPage.tsx`（全屏编辑）
-9. ✅ **路由更新** — 添加 `/diary/:id` 和 `/diary/:id/edit` 嵌套路由
+1. ✅ **文件存储层** — 按年/月目录存储 JSON，`index.json` 索引加速，墓碑软删
+2. ✅ **IPC 处理器** — create/update/delete/get/list/search/getByDate/getDates/uploadImage(s)
+3. ✅ **心情 / 天气** — 字典与卡片内的选择控件（`MoodPicker`/`WeatherPicker` 已并入卡片正文）
+4. ✅ **日历视图** — `DiaryCalendar.tsx`，月视图网格，有日记的日期标记点，回到今天
+5. ✅ **图片附件** — 存储到 `userData/images/`，通过 IPC 文件对话框选择
 
-**已创建的核心文件：**
+**已完成的重构（第二轮：卡片式日记，依据设计稿 `paper-journal`）**
+
+6. ✅ **数据模型卡片化** — `DiaryEntry.cards` 为正文唯一事实源（8 种卡片类型 + 每卡版式），旧 `content` 富文本在读取时迁移成卡片
+7. ✅ **卡片板（时间轴，`/diary`）** — 日期卡 + 卡片流 + 派生面板（今日小结/迷你月历/连续记录/标签/本月心情/素材/模板/今日提示），卡片可拖动重排
+8. ✅ **编排模式（`/diary/:id/edit`）** — 页面结构 / 卡片属性 / 素材三块面板，选中卡片改类型·宽度·内边距·底色，撤销重做、8px 网格、页面底色、模板套用
+9. ✅ **阅读模式（`/diary/:id`）** — 只读铺开卡片
+10. ✅ **回顾（`/diary/recap`）** — 记录天数 / 字数 / 平均心情 / 照片 / 心情曲线（手写 SVG）/ 标签分布 / 记录热度 / 本月照片 / 本月高光 / 常用时段，支持本周·本月·今年粒度
+11. ✅ **素材库（`/diary/library`）** — 全部图片（含未使用）/ 摘录 / 清单 / 同步
+12. ✅ **纸感调色板** — `data-palette="journal"` 覆盖全局语义 token 并新增 `paper-*`/`ink-*`/`terra`/`heat-1..5`；EB Garamond 本地打包
+
+**未做**
+
+- 设计稿的 `Phone`（移动端窄窗卡片堆）板未实现
+- 回顾页的「导出为 PDF / 生成年度回顾」只保留入口，未实现导出
+
+**核心文件**
 
 ```
-src/shared/types/diary.ts                          # 日记类型定义
-src/main/storage/diary.ts                          # 文件系统 CRUD
-src/main/ipc/diary.ts                              # 日记 IPC 处理器
-src/renderer/src/components/diary/DiaryEditor.tsx   # Tiptap 富文本编辑器
-src/renderer/src/components/diary/DiaryCalendar.tsx # 月视图日历
-src/renderer/src/components/diary/DiaryList.tsx     # 日记列表
-src/renderer/src/components/diary/DiaryCard.tsx     # 日记卡片
-src/renderer/src/components/diary/MoodPicker.tsx    # 心情选择器
-src/renderer/src/components/diary/WeatherPicker.tsx # 天气选择器
-src/renderer/src/pages/diary/DiaryPage.tsx               # 日记主页
-src/renderer/src/pages/diary/DiaryDetailPage.tsx          # 日记详情页
-src/renderer/src/pages/diary/DiaryEditorPage.tsx          # 日记编辑页
+src/shared/types/diary.ts                        # 日记 + 卡片类型、标签常量、页面底色
+src/main/storage/diary.ts                        # 文件系统 CRUD、卡片规范化、旧富文本迁移、字数
+src/main/ipc/diary.ts                            # 日记 IPC 处理器（频道走 IPC_CHANNELS）
+src/renderer/src/lib/diaryCards.ts               # 卡片工厂、版式映射、字数、编排模板
+src/renderer/src/lib/diaryStats.ts               # 按天聚合、连续记录、标签/心情/时段/热度（纯函数）
+src/renderer/src/lib/diaryMeta.ts                # 卡片 / 天气图标映射
+src/renderer/src/stores/diaryStore.ts            # 一次装载 + 单条回写 + createPage
+src/renderer/src/components/diary/JournalPrimitives.tsx  # 纸感控件原语
+src/renderer/src/components/diary/JournalToolbar.tsx     # 页内顶栏（页记 + 视图切换）
+src/renderer/src/components/diary/CardShell.tsx          # 卡片骨架（底色/宽度/选中手柄）
+src/renderer/src/components/diary/DiaryCardBody.tsx      # 8 种卡片的阅读/编辑两态
+src/renderer/src/components/diary/DiaryCardView.tsx      # 外壳 + 正文
+src/renderer/src/components/diary/DateHeaderCard.tsx     # 日期卡
+src/renderer/src/components/diary/InsightPanels.tsx      # 卡片板的固定面板
+src/renderer/src/components/diary/Recap*.tsx             # 回顾页的面板与图表
+src/renderer/src/components/diary/DiaryCalendar.tsx      # 月视图日历（周一为首日）
+src/renderer/src/components/diary/SyncToolbar.tsx        # 同步控件
+src/renderer/src/pages/diary/DiaryLayout.tsx             # 模块壳
+src/renderer/src/pages/diary/DiaryBoardPage.tsx          # 卡片板
+src/renderer/src/pages/diary/DiaryReadPage.tsx           # 阅读
+src/renderer/src/pages/diary/DiaryComposePage.tsx        # 编排
+src/renderer/src/pages/diary/DiaryCalendarPage.tsx       # 日历
+src/renderer/src/pages/diary/DiaryRecapPage.tsx          # 回顾
+src/renderer/src/pages/diary/DiaryLibraryPage.tsx        # 素材库
+src/renderer/public/fonts/eb-garamond-latin-*.woff2      # 展示字体（SIL OFL）
 ```
+
+**已删除（被卡片模型取代）**：`DiaryEditor.tsx`（Tiptap 富文本）、`DiaryList.tsx`、`DiaryCard.tsx`、`MoodPicker.tsx`、`WeatherPicker.tsx`、`pages/diary/{DiaryPage,DiaryDetailPage,DiaryEditorPage}.tsx`。
 
 ---
 

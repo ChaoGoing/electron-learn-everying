@@ -4,9 +4,13 @@ import { AppLayout } from '../components/layout/AppLayout'
 
 // Lazy-loaded page components
 const Home = lazy(() => import('../pages/Home'))
-const DiaryPage = lazy(() => import('../pages/diary/DiaryPage'))
-const DiaryDetailPage = lazy(() => import('../pages/diary/DiaryDetailPage'))
-const DiaryEditorPage = lazy(() => import('../pages/diary/DiaryEditorPage'))
+const DiaryLayout = lazy(() => import('../pages/diary/DiaryLayout'))
+const DiaryBoardPage = lazy(() => import('../pages/diary/DiaryBoardPage'))
+const DiaryCalendarPage = lazy(() => import('../pages/diary/DiaryCalendarPage'))
+const DiaryRecapPage = lazy(() => import('../pages/diary/DiaryRecapPage'))
+const DiaryLibraryPage = lazy(() => import('../pages/diary/DiaryLibraryPage'))
+const DiaryReadPage = lazy(() => import('../pages/diary/DiaryReadPage'))
+const DiaryComposePage = lazy(() => import('../pages/diary/DiaryComposePage'))
 const BlogPage = lazy(() => import('../pages/blog/BlogPage'))
 const ProjectPage = lazy(() => import('../pages/project/ProjectPage'))
 const SearchPage = lazy(() => import('../pages/search/SearchPage'))
@@ -37,15 +41,31 @@ export const routes: AppRouteObject[] = [
       },
       {
         path: 'diary',
-        element: <DiaryPage />,
+        element: <DiaryLayout />,
         children: [
           {
+            index: true,
+            element: <DiaryBoardPage />
+          },
+          {
+            path: 'calendar',
+            element: <DiaryCalendarPage />
+          },
+          {
+            path: 'recap',
+            element: <DiaryRecapPage />
+          },
+          {
+            path: 'library',
+            element: <DiaryLibraryPage />
+          },
+          {
             path: ':id',
-            element: <DiaryDetailPage />
+            element: <DiaryReadPage />
           },
           {
             path: ':id/edit',
-            element: <DiaryEditorPage />
+            element: <DiaryComposePage />
           }
         ]
       },

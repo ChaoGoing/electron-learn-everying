@@ -56,22 +56,22 @@ graph TD
 
 ## 3. 核心设计决策（ADR 摘要）
 
-| 决策点       | 选择                                                                 | 理由                                                                              |
-| ------------ | -------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 状态管理     | **Zustand**                                                          | 轻量、少样板、可在组件外调用（适合 IPC 回写触发刷新）                             |
-| 数据存储     | **本地文件（Markdown/JSON）**                                        | 无需编译原生模块，数据透明可外部编辑，便于 Git 版本管理                           |
-| 日记编辑器   | **Tiptap**（ProseMirror）                                            | 所见即所得，支持图片/任务列表/高亮，正文存 HTML                                   |
-| 跨进程契约   | **类型化 IPC**                                                       | 频道常量 + `window.api` 类型 + handler 三层，编译期校验                           |
-| 窗口方案     | `frame: false` + 自定义标题栏                                        | 跨平台统一无边框，替代 macOS-only 的 `titleBarStyle`                              |
-| 删除语义     | **墓碑软删**（`deletedAt`）                                          | 删除需随同步传播，不能物理消失                                                    |
-| 主题         | 语义 token + `@theme` + scoped palette                               | 明暗模式与"日记暖色手帐"等换肤都不改组件内部                                      |
-| 主题事实源   | **`themeStore`（Zustand）单点**，明暗与调色板同源                    | 组件不再各自读写 `localStorage`（旧 `ThemeToggle` 会绕过主进程同步与子页面下发）  |
-| 主题下发内容 | 下发**算好的 CSS 变量值**，而非仅 `mode`                             | 子页面无需重复定义调色板，`index.css` 新增 token 自动传播                         |
-| 首帧无闪烁   | 把 `theme` / `palette` 拼进子页面 URL 查询参数                       | 子页面解析 HTML 时即可落地，不必等宿主消息；完整 token 表仍走消息                 |
-| 嵌入方式     | **iframe 与 `<webview>` 双通道**                                     | iframe 通用、可跨源；webview 可注入任意页面（含跨源）且支持 `executeJavaScript`   |
-| 嵌入安全     | `will-attach-webview` 阶段统一收口                                   | 剥离子页面 preload、强制 `sandbox`/`contextIsolation`、`file://` 仅限应用自身产物 |
-| 客户端分发   | 单一源码 `theme-client.js`，Vite 插件同时供给 `?raw` 注入与 URL 引用 | 避免"注入用一份、子页面引用另一份"的双拷贝漂移                                    |
-| 路由         | `createBrowserRouter` + `React.lazy` + Suspense                      | 按页代码分割，编辑器等重组件首屏不阻塞                                            |
+| 决策点       | 选择                                                                                          | 理由                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 状态管理     | **Zustand**                                                                                   | 轻量、少样板、可在组件外调用（适合 IPC 回写触发刷新）                                   |
+| 数据存储     | **本地文件（Markdown/JSON）**                                                                 | 无需编译原生模块，数据透明可外部编辑，便于 Git 版本管理                                 |
+| 日记形态     | **卡片式页面**：一天 = 一个页面，页面 = 若干张卡片（文字/照片/摘录/清单/心情/音乐/天气/位置） | 版面即数据（宽度/底色/内边距/顺序随条目落盘），可拖拽编排、套模板；正文不再是单块富文本 |
+| 跨进程契约   | **类型化 IPC**                                                                                | 频道常量 + `window.api` 类型 + handler 三层，编译期校验                                 |
+| 窗口方案     | `frame: false` + 自定义标题栏                                                                 | 跨平台统一无边框，替代 macOS-only 的 `titleBarStyle`                                    |
+| 删除语义     | **墓碑软删**（`deletedAt`）                                                                   | 删除需随同步传播，不能物理消失                                                          |
+| 主题         | 语义 token + `@theme` + scoped palette                                                        | 明暗模式与"日记暖色手帐"等换肤都不改组件内部                                            |
+| 主题事实源   | **`themeStore`（Zustand）单点**，明暗与调色板同源                                             | 组件不再各自读写 `localStorage`（旧 `ThemeToggle` 会绕过主进程同步与子页面下发）        |
+| 主题下发内容 | 下发**算好的 CSS 变量值**，而非仅 `mode`                                                      | 子页面无需重复定义调色板，`index.css` 新增 token 自动传播                               |
+| 首帧无闪烁   | 把 `theme` / `palette` 拼进子页面 URL 查询参数                                                | 子页面解析 HTML 时即可落地，不必等宿主消息；完整 token 表仍走消息                       |
+| 嵌入方式     | **iframe 与 `<webview>` 双通道**                                                              | iframe 通用、可跨源；webview 可注入任意页面（含跨源）且支持 `executeJavaScript`         |
+| 嵌入安全     | `will-attach-webview` 阶段统一收口                                                            | 剥离子页面 preload、强制 `sandbox`/`contextIsolation`、`file://` 仅限应用自身产物       |
+| 客户端分发   | 单一源码 `theme-client.js`，Vite 插件同时供给 `?raw` 注入与 URL 引用                          | 避免"注入用一份、子页面引用另一份"的双拷贝漂移                                          |
+| 路由         | `createBrowserRouter` + `React.lazy` + Suspense                                               | 按页代码分割，编辑器等重组件首屏不阻塞                                                  |
 
 ## 4. 数据模型与本地存储
 
@@ -80,24 +80,40 @@ graph TD
 ```ts
 interface DiaryEntry {
   id: string
-  title: string
-  content: string // Tiptap 生成的 HTML，是列表/详情/全文搜索的唯一数据源
+  title: string // 兼容字段；卡片式日记不强制标题，留空即由卡片标题兜底
+  content: string // 旧版 Tiptap HTML，仅作迁移输入，新数据为空串
+  cards: DiaryCard[] // 正文的唯一事实源，升序即板上顺序
+  background: DiaryPageBackground // 页面底色：paper | sand | moss | sky
   mood: string | null
   weather: string | null
+  location: string | null
   tags: string[]
   isFavorite: boolean
-  wordCount: number
+  wordCount: number // 中英混排字数（CJK 逐字 + 其余按空白切词）
   createdAt: string // ISO 8601
   updatedAt: string
   deletedAt: string | null // 墓碑：非空即已删除
 }
+
+// 判别联合：每张卡片带自己的版式与载荷
+type DiaryCard =
+  | DiaryTextCard // { text, mood, tags }
+  | DiaryPhotoCard // { images[], caption, place }
+  | DiaryQuoteCard // { text, source }
+  | DiaryChecklistCard // { variant: 'list' | 'pills', items[] }
+  | DiaryMoodCard // { mood, note }
+  | DiaryMusicCard // { song, artist, url, note }
+  | DiaryWeatherCard // { weather, temperature, place }
+  | DiaryLocationCard // { place, note }
+
+// 共同的版式字段（CardBase）：order / width(通栏|半栏|双栏) / background / padding / time / title
 ```
 
 ### 4.2 磁盘布局（`app.getPath('userData')` 下）
 
 ```
 data/
-├── diary/{year}/{month}/{date}-{id}.json   # 每条日记一个 JSON 文件
+├── diary/{year}/{month}/{date}-{id}.json   # 每一「天」一个页面 JSON（内含卡片数组）
 │   └── index.json                          # { [date]: DiaryEntryMeta[] } 元数据索引
 ├── settings.json                           # 同步设置（syncBaseUrl / syncApiKey）
 └── syncState.json                          # lastPushAt / lastPullAt / lastError
@@ -105,7 +121,8 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 ```
 
 - **索引**：`index.json` 只存轻量元数据（`id/title/mood/weather/wordCount/createdAt/updatedAt/deletedAt`），列表/搜索/日历先读索引、按需加载单条文件。
-- **归一化**：读入用 `normalizeEntry()` 补默认值，旧版本 JSON（缺 `deletedAt` 等）无需迁移即可兼容。
+- **归一化 + 迁移**：读入用 `normalizeEntry()` 补默认值；条目没有 `cards` 时，把旧版 Tiptap `content` 拆成卡片（`<blockquote>` → 摘录、`data-type="taskList"` → 清单、`<img>` → 照片、其余文字 → 文字卡）。迁移在读取时进行、下次写入时落盘，因此无需单独的迁移脚本，也不会未经用户操作就改写旧文件。
+- **改日期会搬文件**：`updateEntry` 收到 `date` 时保留原时刻、把文件移到新的 `{year}/{month}/` 并重写两处索引（`moveEntryDate`）。
 
 ## 5. 同步设计（本地优先）
 
@@ -140,7 +157,7 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 | -------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `syncStore`                                  | **action 型**  | 唯一含异步动作的 store：`push/pull/refresh` 调 `window.api.diary.*`，维护 `isPushing/isPulling/status`                                                                                                                                                               |
 | `themeStore`                                 | **action 型**  | **主题的唯一事实源**：`mode: light/dark/system` + `resolved` + `palette`；负责 `localStorage` 持久化、写 `<html>` 的 `.dark/.light`/`data-theme`/`data-palette`/`color-scheme`、同步主进程 `nativeTheme`、订阅系统偏好。配套的 `initTheme()` 在 `App` 挂载时启动一次 |
-| `diaryStore`                                 | 数据型         | `entries/selectedDate/isLoading` + setters（页面组件直接调 `window.api.diary.*` 后回写）                                                                                                                                                                             |
+| `diaryStore`                                 | 数据型         | 进入 `/diary` 时一次性装载全部条目与素材图片（`ensureLoaded`），卡片板/日历/回顾/素材库都从这一份派生；`upsertEntry` 让保存后回写单条而不整表重载，`createPage(date)` 负责「新建某一天的页面」并把日期搬到那一天                                                     |
 | `blogStore` / `projectStore` / `searchStore` | 数据型（占位） | 定义领域 shape + setters，尚未接入 IPC                                                                                                                                                                                                                               |
 | `settingsStore`                              | 本地偏好       | `autoSave/editorFontSize/language`，**仅在内存**，未持久化（与主进程 `settings.json` 的同步设置有别）                                                                                                                                                                |
 
@@ -159,7 +176,7 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 - **scoped palette（可换肤）**：`PaletteId = 'default' | 'journal'`，`useRoutePalette` 按路由在 `useLayoutEffect` 里调 `themeStore.setPalette()`，由 store 写 `<html data-palette>`；`index.css` 中的 `:root[data-palette='journal'] { … }` 统一覆盖语义 token——进入日记模块时整壳换成「温暖手帐」暖色调，组件自身不改一行。
 - **跟随系统**：`mode === 'system'` 时同时订阅 `matchMedia('(prefers-color-scheme: dark)')` 与主进程转发的 `nativeTheme` 事件（后者覆盖窗口未聚焦等场景），两者互补。
 - **跨进程一致**：`themeStore` 每次改动都把 `mode` 推给主进程 `nativeTheme.themeSource`，让 webview / iframe 内的 `prefers-color-scheme` 返回**应用选择的**明暗而非操作系统的。
-- **日记编辑器**：Tiptap（StarterKit + Image + Placeholder + Underline + Link + TaskList/Item + CharacterCount + Highlight），BubbleMenu 工具条，`update` 事件 1600ms 防抖自动保存 + `Cmd/Ctrl+S` 手动保存；正文存 HTML，字数为 `CharacterCount` 统计。
+- **日记编排（卡片式）**：三块视图——卡片板（`/diary`，拖动卡片即重排、从「素材」拖入即落卡）、阅读（`/diary/:id`）、编排（`/diary/:id/edit`，左侧页面结构 + 卡片属性 + 素材，右侧卡片板）。拖拽用原生 HTML5 DnD，不引第三方库；编排页的撤销/重做在本地维护一份 `cards` 快照栈；所有改动立即落盘（`window.api.diary.update`）。统计口径集中在 `lib/diaryStats.ts`（纯函数），卡片工厂/版式映射/模板在 `lib/diaryCards.ts`。原 Tiptap 富文本编辑页已删除。
 
 ### 7.1 主题相关模块分工
 
@@ -307,14 +324,15 @@ html[data-theme='dark'] body {
 | `theme:getNativeTheme` | invoke    | 读回 `{ source, shouldUseDarkColors }`                  |
 | `theme:systemChanged`  | 主 → 渲染 | `nativeTheme` 的 `updated` 事件转发，供「跟随系统」重算 |
 
-**现状缺口**：`window/app/file/shell/theme` 已统一到共享 `IPC_CHANNELS`；`diary/settings/sync` 的频道常量仍分散在 `main/ipc/diary.ts`、`main/ipc/sync.ts` 的本地 `CHANNELS`，`preload` 中仍为硬编码字符串，改造时应顺手迁移。
+**已收敛**：`window/app/file/shell/theme/diary/settings/sync` 全部走共享 `IPC_CHANNELS`，`preload/index.ts` 也用常量调用，不再有硬编码字符串。
 
 ## 10. 已知限制、风险与路线图
 
 - **实施进度**：阶段 1（基础层）与阶段 2（日记）已完成；阶段 3（博客）、4（开发项目）、5（通用/打磨）未做（详见 `plan.md`）。
 - **工程化缺口**：无测试基础设施（Vitest 未配置）、无 pre-commit 钩子（Husky）、未加 CSP。
-- **类型一致性**：`diaryStore.ts` 内重复定义了缺少 `deletedAt` 的 `DiaryEntry`，与 `shared/types/diary.ts` 漂移，应统一引用共享类型。
-- **文档时效**：`方案.md`（日记"图文卡片模板底座"）所列 `diaryHtml.ts`/`templates.ts`/`PhotoNoteEditor.tsx` 及 `DiaryEntry.type/blocks` **尚未落地**；`docs/diary-sync-client-plan.md` 开头的"尚未改代码"已过时（同步代码已实现）。
+- **类型一致性**：已消除——`diaryStore.ts` 改为引用 `shared/types/diary`，不再重复声明 `DiaryEntry`。
+- **未落地**：设计稿 `paper-journal` 的第四块 `Phone`（移动端窄窗卡片堆）未实现；回顾页的「导出为 PDF / 生成年度回顾」只保留入口，点击仅打印日志、**没有真的导出**。
+- **文档时效**：`方案.md`（日记"图文卡片模板底座"）所列 `diaryHtml.ts`/`templates.ts`/`PhotoNoteEditor.tsx` 及 `DiaryEntry.type/blocks` 这些**文件名与字段名都不存在**，但其意图已由卡片模型 + `COMPOSE_TEMPLATES` 落地；`docs/diary-sync-client-plan.md` 开头的"尚未改代码"已过时（同步代码已实现）。
 - **嵌入相关的已知边界**：
   - **跨源 iframe 无法注入**，只能靠子页面自带 `theme-client.js`；且 `postMessage` 的 `targetOrigin` 必须与子页面自身源一致，否则消息被浏览器静默丢弃（宿主默认由 `src` 推导，已覆盖常见情形）。
   - **`file://` 子页面的 `origin` 是字符串 `"null"`**，应答子页面请求时只能用 `targetOrigin: '*'`（已在 `themeBridge` 中特判）。

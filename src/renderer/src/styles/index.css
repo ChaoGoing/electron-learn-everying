@@ -3,6 +3,24 @@
 /* shadcn/ui 依赖的进出场动画（Tooltip/Dialog 等的 animate-in / fade-in 类） */
 @plugin "tailwindcss-animate";
 
+/* ── 页记 · 纸感设计的展示字体 ──
+   EB Garamond 只覆盖拉丁字母与数字（设计稿里标题、日期、统计数字的骨架），
+   随包本地化（约 49 KB，SIL OFL），离线可用；中文回落到系统衬线（宋体系）。 */
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/eb-garamond-latin-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'EB Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/eb-garamond-latin-600.woff2') format('woff2');
+}
+
 /* ── Windows 11 Design Tokens ── */
 @theme {
   /* Font stack: Segoe UI Variable on Windows, SF Pro on macOS */
@@ -11,6 +29,8 @@
     sans-serif;
   --font-mono: 'Cascadia Code', 'JetBrains Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
   --font-serif: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  /* 展示字体：标题、日期、统计数字（EB Garamond 已本地打包，见文件头的 @font-face） */
+  --font-display: 'EB Garamond', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', Georgia, serif;
 
   /* Windows 11 accent colors */
   --color-accent: #60a5fa;
@@ -54,6 +74,60 @@
   /* Spacing (sidebar, titlebar) */
   --spacing-sidebar: 52px;
   --spacing-titlebar: 40px;
+
+  /* ───────────────────────────────────────────────────────────
+     页记 · 纸感设计 token（日记模块）
+     取自设计稿 `paper-journal`；只在 diary 模块消费，其他页面不受影响。
+     亮色值即设计稿原值，暗色变体在下方 [data-palette='journal'].dark 里派生。
+  ─────────────────────────────────────────────────────────── */
+  /* 画布：卡片板 / 编排页 / 顶栏 */
+  --color-paper-canvas: #faf6ec;
+  --color-paper-canvas-deep: #f6f1e4;
+  --color-paper-surface: #fbf7ee;
+  /* 卡片底 */
+  --color-paper-card: #fffcf6;
+  --color-paper-card-warm: #fbf6e9;
+  --color-paper-card-alt: #f8f2e3;
+  /* 面板内底 / 分段控件底 / 选中态 */
+  --color-paper-sunken: #f2eada;
+  --color-paper-selected: #e9dfc9;
+  /* 描边 */
+  --color-paper-line: #e7ddc8;
+  --color-paper-line-soft: #ebe1cd;
+  --color-paper-line-strong: #e3d9c4;
+  --color-paper-line-dash: #d3c7ad;
+  --color-paper-line-dash-strong: #c9bc9f;
+  --color-paper-divider: #e4dac4;
+
+  /* 墨色 */
+  --color-ink-strong: #2b2620;
+  --color-ink: #5c5346;
+  --color-ink-soft: #7a6e5c;
+  --color-ink-faint: #9c8e75;
+
+  /* 强调色 · 陶土红（设计稿 accent，四档可换） */
+  --color-terra: #a84a2a;
+  --color-terra-deep: #7a3319;
+  --color-terra-bright: #c4693f;
+  --color-terra-tint: #f5ebd4;
+  --color-terra-tint-ink: #7a5c22;
+  --color-terra-wash: #fbf1ec;
+
+  /* 辅助色 */
+  --color-clay: #8c3a1d;
+  --color-clay-line: #e4c6b8;
+  --color-moss: #5f7355;
+  --color-moss-soft: #e8ede2;
+  --color-moss-ink: #4e6046;
+  --color-amber: #96742f;
+  --color-iris: #5b5a8c;
+
+  /* 记录热度五档（少 → 多） */
+  --color-heat-1: #eae1cd;
+  --color-heat-2: #efd8c4;
+  --color-heat-3: #e0af8d;
+  --color-heat-4: #ce8557;
+  --color-heat-5: #a84a2a;
 }
 
 /* ── Dark mode variant ── */
@@ -124,47 +198,89 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   Scoped palette: 「温暖手帐」journal theme (direction 1)
+   Scoped palette: 「页记 · 纸感」journal theme
    Activated by `data-palette="journal"` on <html> via
    `useRoutePalette` while the user is inside the diary module.
    Overrides the semantic tokens above, so the whole chrome
    (sidebar, titlebar, cards, editor) warms up together.
+   取值来自设计稿 `paper-journal`（底色 #FAF6EC / 卡片 #FFFCF6 / 陶土红 #A84A2A）。
 ───────────────────────────────────────────────────────────── */
 :root[data-palette='journal'] {
   /* Accent — terracotta */
-  --color-accent: #c8735a;
-  --color-accent-hover: #b65e45;
-  --color-accent-active: #9e4b33;
+  --color-accent: #a84a2a;
+  --color-accent-hover: #933f22;
+  --color-accent-active: #7a3319;
 
-  /* Mica / canvas — warm paper gray */
-  --color-mica-light: #efe8de;
-  --color-mica-dark: #201b16;
+  /* Mica / canvas — warm paper */
+  --color-mica-light: #faf6ec;
+  --color-mica-dark: #1e1a15;
 
   /* Surfaces — ivory paper */
-  --color-surface-light: #fbf6ed;
-  --color-surface-dark: #29241e;
-  --color-surface-elevated-light: #f4eee2;
-  --color-surface-elevated-dark: #332d25;
+  --color-surface-light: #fffcf6;
+  --color-surface-dark: #26211b;
+  --color-surface-elevated-light: #fbf7ee;
+  --color-surface-elevated-dark: #2c261f;
 
   /* Borders — warm hairline */
-  --color-border-light: rgba(101, 78, 51, 0.16);
-  --color-border-dark: rgba(255, 244, 222, 0.1);
+  --color-border-light: #e7ddc8;
+  --color-border-dark: #3b332a;
 
   /* Text — warm ink */
-  --color-text-primary-light: #453b2d;
+  --color-text-primary-light: #2b2620;
   --color-text-primary-dark: #f3ebd9;
-  --color-text-secondary-light: rgba(69, 59, 45, 0.62);
+  --color-text-secondary-light: #5c5346;
   --color-text-secondary-dark: rgba(243, 235, 217, 0.62);
 
-  /* Softer, warmer shadows */
-  --shadow-card: 0 2px 12px rgba(101, 78, 51, 0.1);
-  --shadow-card-dark: 0 2px 12px rgba(0, 0, 0, 0.5);
-  --shadow-elevated: 0 6px 24px rgba(101, 78, 51, 0.14);
+  /* Quiet, warm shadows（设计稿：卡片 0 1px 2px / 浮层 0 6px 24px） */
+  --shadow-card: 0 1px 2px rgba(84, 64, 38, 0.05);
+  --shadow-card-dark: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-elevated: 0 6px 24px rgba(84, 64, 38, 0.16);
   --shadow-elevated-dark: 0 6px 24px rgba(0, 0, 0, 0.6);
+}
 
-  /* Slightly rounder, softer corners */
-  --radius-lg: 18px;
-  --radius-xl: 24px;
+/* 暗色变体：设计稿只有浅色，这里按同一暖色系推导一套深纸。 */
+:root[data-palette='journal'].dark {
+  --color-paper-canvas: #1e1a15;
+  --color-paper-canvas-deep: #1a1712;
+  --color-paper-surface: #241f19;
+  --color-paper-card: #26211b;
+  --color-paper-card-warm: #2a241d;
+  --color-paper-card-alt: #2e2820;
+  --color-paper-sunken: #2c261f;
+  --color-paper-selected: #3a3128;
+
+  --color-paper-line: #3b332a;
+  --color-paper-line-soft: #352e26;
+  --color-paper-line-strong: #443a2f;
+  --color-paper-line-dash: #4a4034;
+  --color-paper-line-dash-strong: #554a3c;
+  --color-paper-divider: #3b332a;
+
+  --color-ink-strong: #f3ebd9;
+  --color-ink: #c9bfae;
+  --color-ink-soft: #a2967f;
+  --color-ink-faint: #7e735f;
+
+  --color-terra: #d4775a;
+  --color-terra-deep: #e89a80;
+  --color-terra-bright: #c4693f;
+  --color-terra-tint: #3a2e1e;
+  --color-terra-tint-ink: #d9b87a;
+  --color-terra-wash: #33251d;
+
+  --color-clay: #e08a6a;
+  --color-clay-line: #5a3a2c;
+  --color-moss: #8fa37f;
+  --color-moss-soft: #2b3327;
+  --color-moss-ink: #a9be98;
+  --color-amber: #c9a155;
+  --color-iris: #8e8cbe;
+
+  --color-heat-1: #352e26;
+  --color-heat-2: #4a3a2a;
+  --color-heat-3: #6e4a30;
+  --color-heat-4: #96593a;
+  --color-heat-5: #c4693f;
 }
 
 /* Warm scrollbar while inside the journal palette */
@@ -175,9 +291,37 @@ body {
   background: rgba(139, 105, 68, 0.55);
 }
 
-/* Paper panel texture (direction 1) — subtle gradients, no external assets */
+/* 纸面纹理（design paper-journal）— 极淡的双向径向渐变，不用外部素材 */
 .journal-paper {
   background-image:
     radial-gradient(120% 80% at 8% 0%, rgba(200, 138, 90, 0.05), transparent 55%),
     radial-gradient(120% 90% at 100% 100%, rgba(112, 128, 84, 0.05), transparent 55%);
+}
+
+/* 正文排版：卡片里的文章正文用衬线，行高按设计稿放宽 */
+.journal-prose {
+  font-family: var(--font-serif);
+  font-size: 14.5px;
+  line-height: 1.95;
+  letter-spacing: 0.01em;
+  color: var(--color-ink-strong);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 卡片板上的拖拽：被拖起的卡片降透明度，落点用虚线描边表示 */
+.journal-dragging {
+  opacity: 0.45;
+}
+.journal-drop-target {
+  outline: 2px dashed var(--color-terra);
+  outline-offset: 3px;
+}
+
+/* 8px 网格底（编排模式的「显示 8px 网格」） */
+.journal-grid-8px {
+  background-image:
+    linear-gradient(to right, rgba(122, 110, 92, 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(122, 110, 92, 0.09) 1px, transparent 1px);
+  background-size: 8px 8px;
 }

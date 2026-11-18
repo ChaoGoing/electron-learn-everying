@@ -28,7 +28,27 @@ export const IPC_CHANNELS = {
   THEME_SET_NATIVE_THEME: 'theme:setNativeTheme',
   THEME_GET_NATIVE_THEME: 'theme:getNativeTheme',
   /** 主进程 → 渲染进程：系统明暗偏好变化（`nativeTheme` 事件转发）。 */
-  THEME_SYSTEM_CHANGED: 'theme:systemChanged'
+  THEME_SYSTEM_CHANGED: 'theme:systemChanged',
+
+  // Diary
+  DIARY_CREATE: 'diary:create',
+  DIARY_UPDATE: 'diary:update',
+  DIARY_DELETE: 'diary:delete',
+  DIARY_GET: 'diary:get',
+  DIARY_LIST: 'diary:list',
+  DIARY_SEARCH: 'diary:search',
+  DIARY_GET_BY_DATE: 'diary:getByDate',
+  DIARY_GET_DATES: 'diary:getDates',
+  DIARY_UPLOAD_IMAGE: 'diary:uploadImage',
+  DIARY_UPLOAD_IMAGES: 'diary:uploadImages',
+  DIARY_LIST_IMAGES: 'diary:listImages',
+  DIARY_PUSH: 'diary:push',
+  DIARY_PULL: 'diary:pull',
+  DIARY_GET_SYNC_STATUS: 'diary:getSyncStatus',
+
+  // Settings
+  SETTINGS_GET_SYNC: 'settings:getSync',
+  SETTINGS_SET_SYNC: 'settings:setSync'
 } as const
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS]
