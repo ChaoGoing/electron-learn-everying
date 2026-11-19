@@ -85,6 +85,8 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 ```
 
 - 日记**删除走墓碑软删**：写入 `deletedAt` 时间戳而非删除文件，供同步传播。
+- **写入必须过 `serializeWrite()`**：主进程的 create/update/delete/sync-merge 排成一条链，单次落盘走 `writeJsonAtomic()`（写 `.tmp` 再 rename）。并发写同一个文件会互相截断，落下"合法 JSON + 上一版尾巴"，文件从此解析不了（2026-11-19 真出过一次，整个日记列表跟着报错）。渲染进程侧另有一条 `writeChain` 队列，保证最后落盘的就是最后改的版本。
+- **单条坏文件不连坐**：读文件走 `readEntryFile()`，解析失败记日志并跳过；`index.json` 读坏时按磁盘文件**重建**（索引只是缓存，文件才是事实源）。
 - 读取旧数据时用 `normalizeEntry()` 补默认值，并**顺带迁移**：没有 `cards` 的旧条目会把 `content`（Tiptap HTML）拆成 文字 / 摘录 / 清单 / 照片 卡片。迁移结果在下次写入时落盘，无需单独的迁移脚本。
 - 字数按**中英混排**统计（CJK 逐字 + 其余按空白切词），主进程的 `countText` 与渲染进程 `lib/diaryCards.ts` 各有一份同实现。
 - 「页面设置」改日期会**移动文件**到新的 `{year}/{month}/` 并重写索引（`updateEntry` 收到 `date` 时走 `moveEntryDate`）。
@@ -106,12 +108,14 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 - 领域类型集中在 `src/shared/types/`，**进程间共享的类型只放这里，不要在主进程/渲染进程重复定义**。
 - 日记是**卡片式**的：`DiaryEntry` = 一天一个「页面」，`cards: DiaryCard[]` 是正文的唯一事实源。卡片是判别联合（`text`/`photo`/`quote`/`checklist`/`mood`/`music`/`weather`/`location`），每张卡片带自己的版式（`width` 通栏/半栏/双栏、`background` 底色、`padding`、`order`）与 `time`。页面级还有 `background`（页面底色）、`location`、`mood`、`weather`、`tags`。类型与标签常量见 `src/shared/types/diary.ts`；同步相关见 `shared/types/sync.ts`。
 - 渲染层把日记拆成三块工具：`lib/diaryCards.ts`（卡片工厂、版式映射、字数、编排模板）、`lib/diaryStats.ts`（按天聚合、连续记录、标签/心情/时段/热度口径，纯函数）、`lib/diaryMeta.ts`（图标映射）。统计口径只在这一处，卡片板与回顾页共用。
+- **卡片正文的就地编辑以本地草稿为准**（`DiaryComposePage` 的 `draft`），不要直接渲染 `entry.cards` 让输入框回写：改一个字要走 `update → 落盘 → upsertEntry` 一整圈，输入框 `value` 慢一拍时 React 会把慢一拍的值写回 DOM，中文输入法的组字会被打断（英文看不出来）。改动一律"先改草稿、再排队写盘"。`patch` 按卡片下发，未选中的卡片也能直接打字。
+- **卡片板的拖拽落点分两层**：卡片自己处理"插到这张的前/后"；卡片之间的空隙、下面的面板、行尾空白由容器兜底（`JournalWorkspace` 的 `contentProps`），按到卡片矩形的距离找最近的一张（钩子是 `CardShell` 上的 `data-card-id`）。改拖拽时两层都要照顾到，否则又会出现"松手了但什么都没发生"。只有一张卡片时不给拖拽手柄、不显示落点。
 - 博客（Markdown + Front Matter）与开发项目（看板/任务/代码片段）的规划见 `plan.md` 的最终目录结构与数据布局。
 
 ## 当前进度与文档可信度
 
 - **主实施计划 = `plan.md`**。阶段 1（基础层）与阶段 2（日记）已完成——阶段 2 的实现已从「Tiptap 富文本 + 日历 + 列表」升级为「卡片式页面 + 卡片板 + 编排模式 + 回顾」，依据设计稿 `paper-journal`（`Main` 卡片板 / `Editor` 编排 / `Recap` 回顾 三块已落地，设计稿里的 `Phone` 移动端板未做）。阶段 3（博客）、4（开发项目）、5（通用功能/打磨）未做。
-- 日记路由：`/diary`（卡片板·时间轴）、`/diary/calendar`、`/diary/recap`、`/diary/library`（素材库）、`/diary/:id`（阅读）、`/diary/:id/edit`（编排）。已删除的旧文件：`pages/diary/{DiaryPage,DiaryDetailPage,DiaryEditorPage}.tsx`、`components/diary/{DiaryList,DiaryCard,DiaryEditor,MoodPicker,WeatherPicker}.tsx`——它们被卡片模型取代；`DiaryCalendar.tsx` 与 `SyncToolbar.tsx` 仍在用。
+- 日记路由：`/diary`（卡片板·时间轴）、`/diary/calendar`、`/diary/recap`、`/diary/library`（素材库）、`/diary/:id`（阅读）、`/diary/:id/edit`（编排）。已删除的旧文件：`pages/diary/{DiaryPage,DiaryDetailPage,DiaryEditorPage}.tsx`、`components/diary/{DiaryList,DiaryCard,DiaryEditor,MoodPicker,WeatherPicker}.tsx`——它们被卡片模型取代；`DiaryCalendar.tsx` 与 `SyncToolbar.tsx` 仍在用。时间轴的左栏只有「编排模板 / 今日提示」（`InsightPanels.tsx` 里的 `MaterialsPanel` 已随之删除）；素材面板只留在编排模式里。
 - 以下文档**已过期或与实际代码不符**，引用前先核对源码：
   - `方案.md`：描述"日记模板底座（图文卡片）"改造，所列 `src/renderer/src/lib/diaryHtml.ts`、`components/diary/templates.ts`、`components/diary/PhotoNoteEditor.tsx` 及 `DiaryEntry.type/blocks` 字段**当前都不在源码中**。其**意图已在卡片模型里落地**（模板 → `lib/diaryCards.ts` 的 `COMPOSE_TEMPLATES`），但文件名与字段名与本文档不同。
   - `docs/diary-sync-client-plan.md`：开头写"尚未改代码"，但 `src/main/sync/diary.ts`、`src/renderer/src/stores/syncStore.ts`、`src/renderer/src/components/diary/SyncToolbar.tsx` 等**实际已实现**。

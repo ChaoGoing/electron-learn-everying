@@ -121,6 +121,8 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 ```
 
 - **索引**：`index.json` 只存轻量元数据（`id/title/mood/weather/wordCount/createdAt/updatedAt/deletedAt`），列表/搜索/日历先读索引、按需加载单条文件。
+- **写入串行化 + 原子落盘**：卡片是"改一下就存一次"，界面上很容易同时发出两次 `update`。并发写同一个文件时两次截断与写入会交错，磁盘上会留下"一份合法 JSON + 上一版的尾巴"——文件从此解析不了，`diary:list` 整体失败，整本日记看起来是空的（2026-11-19 真实发生过一次）。因此主进程所有写操作（create/update/delete/sync-merge）都过 `serializeWrite()` 排成一条链，单次写入走 `writeJsonAtomic()`（先写 `.tmp` 再 rename）。渲染进程侧另有一条写队列，保证"最后落盘的就是最后改的"。
+- **坏文件不连坐**：读单条文件走 `readEntryFile()`，解析失败只记日志并跳过，不让一个坏文件带崩整个列表。索引 `index.json` 解析失败时会按磁盘上的文件**重建**（索引只是缓存，文件才是事实源）。
 - **归一化 + 迁移**：读入用 `normalizeEntry()` 补默认值；条目没有 `cards` 时，把旧版 Tiptap `content` 拆成卡片（`<blockquote>` → 摘录、`data-type="taskList"` → 清单、`<img>` → 照片、其余文字 → 文字卡）。迁移在读取时进行、下次写入时落盘，因此无需单独的迁移脚本，也不会未经用户操作就改写旧文件。
 - **改日期会搬文件**：`updateEntry` 收到 `date` 时保留原时刻、把文件移到新的 `{year}/{month}/` 并重写两处索引（`moveEntryDate`）。
 
@@ -153,13 +155,13 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 
 ### 6.1 Zustand stores（`src/renderer/src/stores/`）
 
-| Store                                        | 形态           | 职责                                                                                                                                                                                                                                                                 |
-| -------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `syncStore`                                  | **action 型**  | 唯一含异步动作的 store：`push/pull/refresh` 调 `window.api.diary.*`，维护 `isPushing/isPulling/status`                                                                                                                                                               |
-| `themeStore`                                 | **action 型**  | **主题的唯一事实源**：`mode: light/dark/system` + `resolved` + `palette`；负责 `localStorage` 持久化、写 `<html>` 的 `.dark/.light`/`data-theme`/`data-palette`/`color-scheme`、同步主进程 `nativeTheme`、订阅系统偏好。配套的 `initTheme()` 在 `App` 挂载时启动一次 |
-| `diaryStore`                                 | 数据型         | 进入 `/diary` 时一次性装载全部条目与素材图片（`ensureLoaded`），卡片板/日历/回顾/素材库都从这一份派生；`upsertEntry` 让保存后回写单条而不整表重载，`createPage(date)` 负责「新建某一天的页面」并把日期搬到那一天                                                     |
-| `blogStore` / `projectStore` / `searchStore` | 数据型（占位） | 定义领域 shape + setters，尚未接入 IPC                                                                                                                                                                                                                               |
-| `settingsStore`                              | 本地偏好       | `autoSave/editorFontSize/language`，**仅在内存**，未持久化（与主进程 `settings.json` 的同步设置有别）                                                                                                                                                                |
+| Store                                        | 形态           | 职责                                                                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `syncStore`                                  | **action 型**  | 唯一含异步动作的 store：`push/pull/refresh` 调 `window.api.diary.*`，维护 `isPushing/isPulling/status`                                                                                                                                                                                                                                         |
+| `themeStore`                                 | **action 型**  | **主题的唯一事实源**：`mode: light/dark/system` + `resolved` + `palette`；负责 `localStorage` 持久化、写 `<html>` 的 `.dark/.light`/`data-theme`/`data-palette`/`color-scheme`、同步主进程 `nativeTheme`、订阅系统偏好。配套的 `initTheme()` 在 `App` 挂载时启动一次                                                                           |
+| `diaryStore`                                 | 数据型         | 进入日记模块（卡片板 / 阅读 / 编排三处都会调 `ensureLoaded`，直接刷新 `/diary/:id` 也不会卡在"加载中"）时一次性装载全部条目与素材图片，卡片板/日历/回顾/素材库都从这一份派生；`upsertEntry` 让保存后回写单条而不整表重载，`createPage(date)` 负责「新建某一天的页面」并把日期搬到那一天，`saveCards/deleteCard/duplicateCard` 是卡片落盘的收口 |
+| `blogStore` / `projectStore` / `searchStore` | 数据型（占位） | 定义领域 shape + setters，尚未接入 IPC                                                                                                                                                                                                                                                                                                         |
+| `settingsStore`                              | 本地偏好       | `autoSave/editorFontSize/language`，**仅在内存**，未持久化（与主进程 `settings.json` 的同步设置有别）                                                                                                                                                                                                                                          |
 
 ### 6.2 路由（`src/renderer/src/router/`）
 
@@ -176,7 +178,9 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 - **scoped palette（可换肤）**：`PaletteId = 'default' | 'journal'`，`useRoutePalette` 按路由在 `useLayoutEffect` 里调 `themeStore.setPalette()`，由 store 写 `<html data-palette>`；`index.css` 中的 `:root[data-palette='journal'] { … }` 统一覆盖语义 token——进入日记模块时整壳换成「温暖手帐」暖色调，组件自身不改一行。
 - **跟随系统**：`mode === 'system'` 时同时订阅 `matchMedia('(prefers-color-scheme: dark)')` 与主进程转发的 `nativeTheme` 事件（后者覆盖窗口未聚焦等场景），两者互补。
 - **跨进程一致**：`themeStore` 每次改动都把 `mode` 推给主进程 `nativeTheme.themeSource`，让 webview / iframe 内的 `prefers-color-scheme` 返回**应用选择的**明暗而非操作系统的。
-- **日记编排（卡片式）**：三块视图——卡片板（`/diary`，拖动卡片即重排、从「素材」拖入即落卡）、阅读（`/diary/:id`）、编排（`/diary/:id/edit`，左侧页面结构 + 卡片属性 + 素材，右侧卡片板）。拖拽用原生 HTML5 DnD，不引第三方库；编排页的撤销/重做在本地维护一份 `cards` 快照栈；所有改动立即落盘（`window.api.diary.update`）。统计口径集中在 `lib/diaryStats.ts`（纯函数），卡片工厂/版式映射/模板在 `lib/diaryCards.ts`。原 Tiptap 富文本编辑页已删除。
+- **日记编排（卡片式）**：三块视图——卡片板（`/diary`，拖动卡片即重排；左栏只放编排模板与今日提示，不放素材——时间轴是"看和翻"的地方，加卡片去编排模式）、阅读（`/diary/:id`）、编排（`/diary/:id/edit`，左侧页面结构 + 卡片属性 + 素材，右侧卡片板）。拖拽用原生 HTML5 DnD，不引第三方库；编排页的撤销/重做在本地维护一份 `cards` 快照栈。统计口径集中在 `lib/diaryStats.ts`（纯函数），卡片工厂/版式映射/模板在 `lib/diaryCards.ts`。原 Tiptap 富文本编辑页已删除。
+- **卡片板的落点规则**：卡片自己的 `dragover/drop` 负责"插到这张的前/后"（`dropSideOf` 按归一化后占优的那个轴判前后）；**容器兜底**（`JournalWorkspace` 的 `contentProps`）负责卡片之间的空隙、下面的面板、行尾空白——按到卡片矩形的距离取最近的一张归位（`data-card-id` 是这条链路的钩子），所以指针落在哪儿都能放。只有一张卡片时没有可交换的位置，此时不给拖拽手柄、也不显示"放到最后"的落点，免得拖了没反应。
+- **编排页的"本地草稿"**：编辑中的卡片以组件内 `draft` 为准，不以 store 里的 `entry.cards` 为准。改一个字要走 `update → 落盘 → upsertEntry` 一整圈，输入框的 `value` 慢一拍，React 就会把慢一拍的值写回 DOM——中文输入法正在拼的字会在这一下被打断（实测：拼音与选词都会被抹掉，约 800ms 后才补上；英文每个字母都等得到这一圈，所以看起来正常）。草稿同步更新，写盘跟在后面（`writeChain` 串行队列），`saveCards`/`patchCard` 都只改草稿 + 排队。同理，`patch` 按卡片下发（不是只给选中的那张），没选中的卡片也能直接打字。
 
 ### 7.1 主题相关模块分工
 
@@ -331,7 +335,8 @@ html[data-theme='dark'] body {
 - **实施进度**：阶段 1（基础层）与阶段 2（日记）已完成；阶段 3（博客）、4（开发项目）、5（通用/打磨）未做（详见 `plan.md`）。
 - **工程化缺口**：无测试基础设施（Vitest 未配置）、无 pre-commit 钩子（Husky）、未加 CSP。
 - **类型一致性**：已消除——`diaryStore.ts` 改为引用 `shared/types/diary`，不再重复声明 `DiaryEntry`。
-- **未落地**：设计稿 `paper-journal` 的第四块 `Phone`（移动端窄窗卡片堆）未实现；回顾页的「导出为 PDF / 生成年度回顾」只保留入口，点击仅打印日志、**没有真的导出**。
+- **未落地**：设计稿 `paper-journal` 的第四块 `Phone`（移动端窄窗卡片堆）未实现；回顾页的「导出为 PDF / 生成年度回顾」只保留入口，点击仅打印日志、**没有真的导出**；时间轴左栏不再有素材面板，加卡片需进编排模式（或工具栏「写今日」）。
+- **已修的数据事故（2026-11-19）**：`2026-11-15` 那天的文件曾被并发写坏（尾部多出一个 `}`），导致 `diary:list` 整体报错、日记看起来是空的。已按 §4.2 的串行化 + 原子写修掉成因，并就地修复了那个文件（原件留在同目录 `.corrupt-backup`）。
 - **文档时效**：`方案.md`（日记"图文卡片模板底座"）所列 `diaryHtml.ts`/`templates.ts`/`PhotoNoteEditor.tsx` 及 `DiaryEntry.type/blocks` 这些**文件名与字段名都不存在**，但其意图已由卡片模型 + `COMPOSE_TEMPLATES` 落地；`docs/diary-sync-client-plan.md` 开头的"尚未改代码"已过时（同步代码已实现）。
 - **嵌入相关的已知边界**：
   - **跨源 iframe 无法注入**，只能靠子页面自带 `theme-client.js`；且 `postMessage` 的 `targetOrigin` 必须与子页面自身源一致，否则消息被浏览器静默丢弃（宿主默认由 `src` 推导，已覆盖常见情形）。

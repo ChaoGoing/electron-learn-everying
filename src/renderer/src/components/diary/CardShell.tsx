@@ -86,6 +86,8 @@ export function CardShell({
   return (
     <section
       draggable={draggable}
+      // 卡片板按它找"离指针最近的落点"（空隙、面板上松手时用）
+      data-card-id={card.id}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
       onDragOver={onDragOver}

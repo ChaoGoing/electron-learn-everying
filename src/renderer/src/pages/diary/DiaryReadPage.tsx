@@ -3,7 +3,7 @@
  *
  * 只读地铺开这一页的卡片，附上日期、心情、天气、地点与字数；不做任何就地编辑。
  */
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { BookOpen, Heart, LayoutGrid, MapPin, Trash2 } from 'lucide-react'
 import { DiaryCardView } from '../../components/diary/DiaryCardView'
@@ -27,8 +27,14 @@ export default function DiaryReadPage(): JSX.Element {
   const duplicateCard = useDiaryStore((state) => state.duplicateCard)
   const removeEntry = useDiaryStore((state) => state.removeEntry)
   const load = useDiaryStore((state) => state.load)
+  const ensureLoaded = useDiaryStore((state) => state.ensureLoaded)
 
   const entry = useMemo(() => entries.find((item) => item.id === id) ?? null, [entries, id])
+
+  // 直接打开或刷新 `/diary/:id` 时 store 还是空的，补一次装载。
+  useEffect(() => {
+    void ensureLoaded()
+  }, [ensureLoaded])
 
   if (!entry) {
     return (

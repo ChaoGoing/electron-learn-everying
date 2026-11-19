@@ -1,35 +1,30 @@
 /**
  * 卡片板上的固定面板：今日小结、迷你月历、连续记录、标签、本月心情、
- * 素材（拖到板上）、编排模板、今日提示。
+ * 编排模板、今日提示。
  *
  * 这些不是用户卡片（不进 `entry.cards`），而是从数据派生出来的"家具"，
  * 因此放在一个文件里统一维护。
  */
 import { useMemo, useState } from 'react'
+import { ChevronLeft, ChevronRight, Lightbulb, PenLine, RefreshCw } from 'lucide-react'
 import {
-  ChevronLeft,
-  ChevronRight,
-  CloudSun,
-  Image as ImageIcon,
-  Lightbulb,
-  MapPin,
-  Music2,
-  PenLine,
-  RefreshCw,
-  Smile,
-  Type
-} from 'lucide-react'
-import { COMPOSE_TEMPLATES, MOOD_EMOJIS, MOOD_LABELS } from '../../lib/diaryCards'
+  COMPOSE_TEMPLATES,
+  MOOD_DISTRIBUTION,
+  MOOD_EMOJIS,
+  MOOD_LABELS,
+  moodColor
+} from '../../lib/diaryCards'
 import { cn } from '../../lib/cn'
 import {
   JournalButton,
   JournalIconButton,
+  PANEL_FOOT,
   Panel,
   PanelHeader,
   StatNumber
 } from './JournalPrimitives'
 import { CARD_TYPE_LABELS } from '../../../../shared/types/diary'
-import type { DiaryCardType, DiaryEntry, ImageAsset } from '../../../../shared/types/diary'
+import type { DiaryCardType, DiaryEntry } from '../../../../shared/types/diary'
 
 /* ── 今日小结 ───────────────────────────────────────────────── */
 
@@ -273,108 +268,69 @@ export function TagsPanel({ tags }: { tags: Array<{ tag: string; count: number }
 
 /* ── 本月心情 ───────────────────────────────────────────────── */
 
+/**
+ * 本月心情：一行一个心情，行内是一条按天数成比例的细色条。
+ *
+ * 原先只有「😊 很好 3 天」这种纯数字列表，扫一眼看不出哪一头压着；
+ * 色条长度按**当月出现最多的那个心情**取满格（相对长短比绝对占比在窄栏里好读），
+ * 右侧的数字才是原始天数。颜色跟着分值走，和回顾页的心情色阶一致。
+ */
 export function MoodPanel({
   distribution,
-  average
+  average,
+  label = '本月心情'
 }: {
   distribution: Array<{ mood: string; days: number }>
   average: number | null
+  /** 面板标题，卡片板说「本月心情」。 */
+  label?: string
 }): JSX.Element {
-  const byMood = new Map(distribution.map((item) => [item.mood, item.days]))
-  const rows = ['happy', 'neutral', 'grateful', 'sad', 'tired']
+  // 只列前 5 条；一条记录都没有时，按固定的五个档位摆一排空条，
+  // 面板高度不会因为"这个月没心情"而塌下去。
+  const rows =
+    distribution.length > 0
+      ? distribution.slice(0, 5)
+      : MOOD_DISTRIBUTION.map((mood) => ({ mood, days: 0 }))
+
+  const moodDays = distribution.reduce((sum, item) => sum + item.days, 0)
+  const busiest = Math.max(1, ...rows.map((row) => row.days))
+  const top = distribution[0]
 
   return (
     <Panel className="flex min-w-0 flex-[1_1_260px] flex-col p-[18px]">
-      <div className="mb-2.5 flex items-baseline gap-2">
-        <span className="text-[11px] tracking-[0.1em] text-ink-soft">本月心情</span>
+      <div className="mb-3 flex items-baseline gap-2">
+        <span className="text-[11px] tracking-[0.1em] text-ink-soft">{label}</span>
         <span className="ml-auto text-[11.5px] text-ink">
           {average === null ? '还没有记录' : `平均 ${average.toFixed(1)}`}
         </span>
       </div>
-      <div className="flex flex-col gap-0.5">
-        {rows.map((mood) => (
-          <span
-            key={mood}
-            className="flex h-[30px] items-center gap-2.5 rounded-[9px] px-2.5 text-[12.5px] text-ink-strong"
-          >
-            <span>{MOOD_EMOJIS[mood]}</span>
-            {MOOD_LABELS[mood]}
-            <span className="ml-auto font-display text-[13px] text-ink">
-              {byMood.get(mood) ?? 0} 天
+
+      <div className="flex flex-col gap-[9px]">
+        {rows.map((row) => (
+          <div key={row.mood} className="flex items-center gap-2.5">
+            <span className="w-[62px] shrink-0 text-[12.5px] text-ink-strong">
+              {MOOD_EMOJIS[row.mood] ?? '·'} {MOOD_LABELS[row.mood] ?? row.mood}
             </span>
-          </span>
-        ))}
-      </div>
-    </Panel>
-  )
-}
-
-/* ── 素材 · 拖到板上 ───────────────────────────────────────── */
-
-const MATERIAL_SOURCES: Array<{ type: DiaryCardType; icon: typeof Type }> = [
-  { type: 'photo', icon: ImageIcon },
-  { type: 'text', icon: Type },
-  { type: 'mood', icon: Smile },
-  { type: 'weather', icon: CloudSun },
-  { type: 'music', icon: Music2 },
-  { type: 'location', icon: MapPin }
-]
-
-export function MaterialsPanel({
-  recentImages,
-  onAddCard,
-  onDragCard
-}: {
-  recentImages: ImageAsset[]
-  onAddCard: (type: DiaryCardType) => void
-  onDragCard: (type: DiaryCardType) => void
-}): JSX.Element {
-  return (
-    <Panel className="flex w-full min-w-0 flex-col p-[18px]">
-      <div className="mb-3 flex items-baseline gap-2">
-        <span className="text-[11px] tracking-[0.1em] text-ink-soft">素材 · 拖到板上</span>
-        <span className="ml-auto text-[11px] text-ink">按住拖动</span>
-      </div>
-      <div className="grid grid-cols-3 gap-2">
-        {MATERIAL_SOURCES.map((source) => (
-          <button
-            key={source.type}
-            type="button"
-            draggable
-            onDragStart={(event): void => {
-              // Chromium 下原生拖拽必须写一点 dataTransfer 数据，否则拖拽可能不启动。
-              event.dataTransfer.setData('text/plain', `diary-card:${source.type}`)
-              event.dataTransfer.effectAllowed = 'copy'
-              onDragCard(source.type)
-            }}
-            onClick={(): void => onAddCard(source.type)}
-            className="flex h-[60px] cursor-grab flex-col items-center justify-center gap-1.5 rounded-[11px] border border-dashed border-paper-line-dash bg-paper-surface text-[11px] text-ink hover:bg-paper-sunken"
-          >
-            <source.icon size={16} />
-            {CARD_TYPE_LABELS[source.type]}
-          </button>
-        ))}
-      </div>
-      <div className="mt-auto border-t border-dashed border-paper-line-soft pt-[13px]">
-        {recentImages.length > 0 ? (
-          <>
-            <div className="mb-2 text-[11px] text-ink-soft">最近用过的</div>
-            <div className="flex gap-2">
-              {recentImages.slice(0, 3).map((image) => (
-                <img
-                  key={image.url}
-                  src={image.url}
-                  alt={image.name}
-                  className="h-11 w-14 rounded-[9px] border border-paper-line-dash-strong object-cover"
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="text-[11.5px] text-ink">
-            点一下就能落一张空白卡片，也可以直接拖到板上。
+            <span className="h-[6px] min-w-0 flex-1 overflow-hidden rounded-full bg-paper-selected">
+              <span
+                className="block h-full rounded-full"
+                style={{
+                  width: `${(row.days / busiest) * 100}%`,
+                  backgroundColor: moodColor(row.mood)
+                }}
+              />
+            </span>
+            <span className="w-[42px] shrink-0 text-right font-display text-[12.5px] tabular-nums text-ink">
+              {row.days} 天
+            </span>
           </div>
-        )}
+        ))}
+      </div>
+
+      <div className={PANEL_FOOT}>
+        {moodDays === 0 || !top
+          ? '本月还没有记录心情。'
+          : `${moodDays} 天记了心情，最常是「${MOOD_LABELS[top.mood] ?? top.mood}」。`}
       </div>
     </Panel>
   )
@@ -394,8 +350,7 @@ export function TemplatesPanel({
   disabled?: boolean
 }): JSX.Element {
   const ACCENT = 'var(--color-terra-bright)'
-  const NEUTRAL = '#D8CCB2'
-  const FAINT = '#E2D8C2'
+  const BLOCK = '#E2D8C2'
 
   return (
     <Panel className="flex w-full min-w-0 flex-col p-[18px]">
@@ -403,19 +358,26 @@ export function TemplatesPanel({
         <span className="text-[11px] tracking-[0.1em] text-ink-soft">编排模板</span>
         <span className="ml-auto text-[11px] text-ink">一键套用到{targetLabel}</span>
       </div>
-      <div className={cn('grid grid-cols-3 gap-3', disabled && 'opacity-45')}>
+
+      {/* 一行一个模板：左边版式缩略图，右边名称 + 一句"它到底怎么排"。
+          三列并排时说明只能塞进 title 提示里，用户看不到，也没地方写清楚。 */}
+      <div className={cn('flex flex-col gap-2', disabled && 'opacity-45')}>
         {COMPOSE_TEMPLATES.map((template) => (
           <button
             key={template.id}
             type="button"
-            title={template.hint}
+            title={`套用「${template.label}」`}
             disabled={disabled}
             onClick={(): void => onApply(template.id)}
-            className="flex cursor-pointer flex-col gap-2.5 rounded-xl border border-paper-line-dash-strong bg-paper-surface p-3 text-left text-xs text-ink-strong hover:bg-paper-sunken disabled:cursor-not-allowed disabled:hover:bg-paper-surface"
+            className="flex cursor-pointer items-center gap-3 rounded-[12px] border border-paper-line-dash-strong bg-paper-surface p-2.5 text-left hover:bg-paper-sunken disabled:cursor-not-allowed disabled:hover:bg-paper-surface"
           >
             {/* 不固定高度、也不拉伸：让预览按 viewBox 的比例自己缩放，
                 这样它在 300px 的侧栏里和宽栏里都是同一种观感。 */}
-            <svg viewBox="0 0 100 52" aria-hidden="true" className="block h-auto w-full">
+            <svg
+              viewBox="0 0 100 52"
+              aria-hidden="true"
+              className="block h-[40px] w-[77px] shrink-0"
+            >
               <rect
                 x="0.5"
                 y="0.5"
@@ -433,14 +395,21 @@ export function TemplatesPanel({
                   width={block.w}
                   height={block.h}
                   rx="3"
-                  fill={block.accent ? ACCENT : index === 0 ? NEUTRAL : FAINT}
+                  fill={block.accent ? ACCENT : BLOCK}
                 />
               ))}
             </svg>
-            {template.label}
+            <span className="flex min-w-0 flex-col gap-[3px]">
+              <span className="text-[12.5px] text-ink-strong">{template.label}</span>
+              {/* text-balance：说明折行时两行长短匀一点，别让最后一行只挂一两个字 */}
+              <span className="text-balance text-[11px] leading-[1.6] text-ink">
+                {template.hint}
+              </span>
+            </span>
           </button>
         ))}
       </div>
+
       <div className="mt-auto border-t border-dashed border-paper-line-soft pt-[13px] text-[11.5px] text-ink">
         {disabled
           ? '先放一张卡片，模板才有东西可排。'

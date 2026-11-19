@@ -1,7 +1,8 @@
 /**
  * 日记工作区：固定左栏 + 可滚动主区。
  *
- * 左栏放"工具"（素材、编排模板、今日提示），主区放"内容"（卡片、月级面板）。
+ * 左栏放"工具"（时间轴是编排模板与今日提示，编排模式是页面结构 / 卡片属性 / 素材），
+ * 主区放"内容"（卡片、月级面板）。
  * 工具不参与卡片流，因此卡片增删时它们**不会漂移**——把素材当成board上的一块瓷砖，
  * 卡片一多它就跑到别处，拖拽落卡的交互会一直跳。
  *
@@ -20,6 +21,11 @@ export interface JournalWorkspaceProps {
   mainClassName?: string
   /** 主区容器的额外类名，默认是弹性折行的卡片板。 */
   contentClassName?: string
+  /**
+   * 主区容器的额外属性。
+   * 卡片板用它挂拖拽的兜底落点：卡片之间的空隙、下面的面板都归这个容器管。
+   */
+  contentProps?: React.HTMLAttributes<HTMLDivElement>
   /** 左栏宽度，编排模式需要更宽一点。 */
   railWidth?: number
 }
@@ -30,6 +36,7 @@ export function JournalWorkspace({
   background,
   mainClassName,
   contentClassName,
+  contentProps,
   railWidth = 300
 }: JournalWorkspaceProps): JSX.Element {
   return (
@@ -45,7 +52,12 @@ export function JournalWorkspace({
           {rail}
         </aside>
         <div
-          className={cn('min-w-0 flex-1', contentClassName ?? 'flex flex-wrap items-stretch gap-4')}
+          {...contentProps}
+          className={cn(
+            'min-w-0 flex-1',
+            contentClassName ?? 'flex flex-wrap items-stretch gap-4',
+            contentProps?.className
+          )}
         >
           {children}
         </div>

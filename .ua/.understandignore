@@ -1,0 +1,68 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+#
+# 本次分析范围：日记模块 + 其支撑设施（三进程数据流）。
+# 以下为「已生效」的排除项；末尾注释区为 generate-ignore 生成的建议，未启用。
+
+# --- 构建产物 / 资源 / 设计稿 ---
+resources/
+designs/
+out/
+.ua/
+
+# --- macOS 垃圾文件 ---
+.DS_Store
+
+# --- 其他未实现业务模块（博客 / 开发项目 / 搜索 / 设置 / 关于 / Lab）---
+src/renderer/src/pages/about/
+src/renderer/src/pages/blog/
+src/renderer/src/pages/project/
+src/renderer/src/pages/search/
+src/renderer/src/pages/settings/
+src/renderer/src/pages/lab/
+src/renderer/src/stores/blogStore.ts
+src/renderer/src/stores/projectStore.ts
+src/renderer/src/components/Versions.tsx
+
+# --- 内嵌页（webview/iframe）桥接，与日记模块无关 ---
+src/main/embed/
+src/renderer/src/components/embed/
+src/renderer/src/embedded/
+
+# --- 字体等静态资源 ---
+src/renderer/public/
+
+# --- 已过期文档（AGENTS.md 标注与实际代码不符，避免污染图谱）---
+方案.md
+record.md
+docs/diary-sync-client-plan.md
+
+# --- 编辑器 / 打包 / 锁文件（与日记架构无关）---
+.claude/
+.vscode/
+.editorconfig
+.gitignore
+.npmrc
+.prettierignore
+.prettierrc.yaml
+build/
+dev-app-update.yml
+electron-builder.yml
+pnpm-workspace.yaml
+
+# =====================================================================
+# 以下为 generate-ignore 生成的建议，全部保持注释（未生效）
+# =====================================================================
+
+# --- From .gitignore ---
+# .eslintcache
+# *.log*
+# .tmp*
+
+# --- Test file patterns（本项目暂无测试基础设施，无需启用）---
+# *.test.*
+# *.spec.*
+# *.snap

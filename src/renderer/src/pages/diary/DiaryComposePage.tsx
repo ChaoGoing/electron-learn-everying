@@ -64,6 +64,7 @@ import {
   type DiaryCardType,
   type DiaryCardWidth,
   type DiaryEntry,
+  type UpdateDiaryEntry,
   type DiaryPageBackground
 } from '../../../../shared/types/diary'
 
@@ -111,6 +112,7 @@ export default function DiaryComposePage(): JSX.Element {
   const entries = useDiaryStore((state) => state.entries)
   const images = useDiaryStore((state) => state.images)
   const upsertEntry = useDiaryStore((state) => state.upsertEntry)
+  const ensureLoaded = useDiaryStore((state) => state.ensureLoaded)
 
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -124,8 +126,33 @@ export default function DiaryComposePage(): JSX.Element {
   const [historyVersion, setHistoryVersion] = useState(0)
 
   const entry = useMemo(() => entries.find((item) => item.id === id) ?? null, [entries, id])
+  const entryId = entry?.id ?? null
 
-  const cards = useMemo(() => entry?.cards ?? [], [entry])
+  /**
+   * 正在编辑的卡片草稿——**编排模式下它就是事实源**。
+   *
+   * 不能直接渲染 store 里的 `entry.cards`：改一个字要走
+   * `update → 落盘 → upsertEntry` 一整圈，输入框的 `value` 慢一拍，
+   * React 就会把这个慢一拍的值写回 DOM。中文输入法正在拼的字禁不起这一下——
+   * 拼音刚敲进去就被抹掉，字永远出不来（英文每个字母都能等到这一圈，所以看起来是好的）。
+   *
+   * 草稿同步更新，写盘只是跟在后面的事。
+   */
+  const [draft, setDraft] = useState<DiaryCard[] | null>(null)
+
+  const cards = useMemo(() => draft ?? entry?.cards ?? [], [draft, entry])
+
+  // 直接打开或刷新 `/diary/:id/edit` 时 store 还是空的，补一次装载。
+  useEffect(() => {
+    void ensureLoaded()
+  }, [ensureLoaded])
+
+  // 换一条日记时丢掉草稿与历史栈。
+  useEffect(() => {
+    setDraft(null)
+    historyRef.current = []
+    cursorRef.current = -1
+  }, [id])
 
   // 首次拿到条目时把初始状态压进历史栈。
   useEffect(() => {
@@ -148,32 +175,67 @@ export default function DiaryComposePage(): JSX.Element {
 
   /* ── 落盘 ─────────────────────────────────────────────────── */
 
+  /**
+   * 写盘队列：所有写入排成一条链，保证最后落到磁盘的就是最后改的那一版。
+   * 并发发两次 update 时，主进程侧两次写会交错，文件会多出上一版的尾巴
+   * （主进程另外也做了串行化，这里先把顺序理顺，省得白白排队）。
+   */
+  const writeChain = useRef<Promise<void>>(Promise.resolve())
+
+  const enqueueWrite = useCallback(
+    (patch: UpdateDiaryEntry): void => {
+      if (!entryId) return
+      writeChain.current = writeChain.current.then(async (): Promise<void> => {
+        try {
+          const saved = await window.api.diary.update(entryId, patch)
+          if (saved) upsertEntry(saved)
+        } catch (error) {
+          console.error('保存日记失败：', error)
+        }
+      })
+    },
+    [entryId, upsertEntry]
+  )
+
   const commit = useCallback(
-    async (nextCards: DiaryCard[], options?: { record?: boolean; patch?: Partial<DiaryEntry> }) => {
-      if (!entry) return
-      const record = options?.record ?? true
-      if (record) {
+    (nextCards: DiaryCard[], options?: { record?: boolean; patch?: Partial<DiaryEntry> }): void => {
+      if (!entryId) return
+      // 先改本地草稿：输入框这一帧就跟上，不等 IPC 回程。
+      setDraft(nextCards)
+      if (options?.record ?? true) {
         historyRef.current = [...historyRef.current.slice(0, cursorRef.current + 1), nextCards]
         cursorRef.current = historyRef.current.length - 1
         setHistoryVersion((version) => version + 1)
       }
-      const saved = await window.api.diary.update(entry.id, {
-        cards: nextCards,
-        ...options?.patch
-      })
-      if (saved) upsertEntry(saved)
+      enqueueWrite({ cards: nextCards, ...options?.patch })
     },
-    [entry, upsertEntry]
+    [entryId, enqueueWrite]
   )
 
   const patchSelected = useCallback(
     (patch: Record<string, unknown>): void => {
       if (!selectedId) return
-      void commit(
+      commit(
         cards.map((card) => (card.id === selectedId ? ({ ...card, ...patch } as DiaryCard) : card))
       )
     },
     [cards, commit, selectedId]
+  )
+
+  /**
+   * 卡片正文的就地编辑。
+   *
+   * 不能只给"选中的那张"发 patch：没选中的卡片输入框照样能聚焦（用 Tab 跳进去、
+   * 或者点进来但没落到卡片上），这时 onChange 无处可去，React 会把刚敲的字按旧值写回去。
+   * 每张卡片都拿到写自己的那个函数，选不选中都能打字。
+   */
+  const patchCard = useCallback(
+    (cardId: string, patch: Record<string, unknown>): void => {
+      commit(
+        cards.map((card) => (card.id === cardId ? ({ ...card, ...patch } as DiaryCard) : card))
+      )
+    },
+    [cards, commit]
   )
 
   const moveCard = useCallback(
@@ -182,7 +244,7 @@ export default function DiaryComposePage(): JSX.Element {
       if (from === -1) return
       const insertBefore = delta < 0 ? from - 1 : from + 2
       if (insertBefore < 0 || insertBefore > cards.length) return
-      void commit(moveCardTo(cards, from, insertBefore))
+      commit(moveCardTo(cards, from, insertBefore))
     },
     [cards, commit]
   )
@@ -192,7 +254,7 @@ export default function DiaryComposePage(): JSX.Element {
       const index = cards.findIndex((card) => card.id === cardId)
       if (index === -1) return
       const clone: DiaryCard = { ...cards[index], id: globalThis.crypto.randomUUID() }
-      void commit(insertCardAt(cards, clone, index + 1))
+      commit(insertCardAt(cards, clone, index + 1))
       setSelectedId(clone.id)
     },
     [cards, commit]
@@ -201,7 +263,7 @@ export default function DiaryComposePage(): JSX.Element {
   const removeCard = useCallback(
     (cardId: string): void => {
       if (!window.confirm('删除这张卡片？删除后这张卡片的内容就不在了。')) return
-      void commit(
+      commit(
         cards
           .filter((card) => card.id !== cardId)
           .map((card, position) => ({ ...card, order: position }))
@@ -212,10 +274,10 @@ export default function DiaryComposePage(): JSX.Element {
   )
 
   const addCard = useCallback(
-    async (type: DiaryCardType, insertBefore?: number): Promise<void> => {
+    (type: DiaryCardType, insertBefore?: number): void => {
       const at = insertBefore ?? cards.length
       const card = createCard(type, at)
-      await commit(insertCardAt(cards, card, at))
+      commit(insertCardAt(cards, card, at))
       setSelectedId(card.id)
     },
     [cards, commit]
@@ -240,7 +302,7 @@ export default function DiaryComposePage(): JSX.Element {
         time: selectedCard.time,
         title: renamedByUser ? selectedCard.title : rebuilt.title
       }
-      void commit(cards.map((card) => (card.id === selectedCard.id ? replaced : card)))
+      commit(cards.map((card) => (card.id === selectedCard.id ? replaced : card)))
     },
     [cards, commit, selectedCard]
   )
@@ -249,14 +311,14 @@ export default function DiaryComposePage(): JSX.Element {
     if (cursorRef.current <= 0) return
     cursorRef.current -= 1
     setHistoryVersion((version) => version + 1)
-    void commit(historyRef.current[cursorRef.current], { record: false })
+    commit(historyRef.current[cursorRef.current], { record: false })
   }, [commit])
 
   const redo = useCallback((): void => {
     if (cursorRef.current >= historyRef.current.length - 1) return
     cursorRef.current += 1
     setHistoryVersion((version) => version + 1)
-    void commit(historyRef.current[cursorRef.current], { record: false })
+    commit(historyRef.current[cursorRef.current], { record: false })
   }, [commit])
 
   const draggedCardId = drag?.kind === 'card' ? drag.cardId : null
@@ -271,10 +333,10 @@ export default function DiaryComposePage(): JSX.Element {
       if (index === -1 || !drag) return
       const insertBefore = insertIndexFor(index, side)
       if (drag.kind === 'new') {
-        void addCard(drag.cardType, insertBefore)
+        addCard(drag.cardType, insertBefore)
       } else if (draggedIndex !== -1) {
         const next = moveCardTo(cards, draggedIndex, insertBefore)
-        if (next.some((card, position) => card.id !== cards[position]?.id)) void commit(next)
+        if (next.some((card, position) => card.id !== cards[position]?.id)) commit(next)
       }
       setDrag(null)
       setDropTarget(null)
@@ -283,21 +345,18 @@ export default function DiaryComposePage(): JSX.Element {
   )
 
   const changeDate = useCallback(
-    async (date: string): Promise<void> => {
-      if (!entry || !date) return
-      const saved = await window.api.diary.update(entry.id, { date })
-      if (saved) upsertEntry(saved)
+    (date: string): void => {
+      if (!date) return
+      enqueueWrite({ date })
     },
-    [entry, upsertEntry]
+    [enqueueWrite]
   )
 
   const changeBackground = useCallback(
-    async (background: DiaryPageBackground): Promise<void> => {
-      if (!entry) return
-      const saved = await window.api.diary.update(entry.id, { background })
-      if (saved) upsertEntry(saved)
+    (background: DiaryPageBackground): void => {
+      enqueueWrite({ background })
     },
-    [entry, upsertEntry]
+    [enqueueWrite]
   )
 
   useEffect(() => {
@@ -453,7 +512,7 @@ export default function DiaryComposePage(): JSX.Element {
 
               <button
                 type="button"
-                onClick={(): void => void addCard('text')}
+                onClick={(): void => addCard('text')}
                 className="mt-2 flex h-[38px] cursor-pointer items-center justify-center gap-1.5 rounded-[9px] border border-dashed border-paper-line-dash-strong text-[12.5px] text-ink hover:bg-paper-sunken"
               >
                 <Plus size={14} />
@@ -471,7 +530,7 @@ export default function DiaryComposePage(): JSX.Element {
                       id="page-date"
                       type="date"
                       value={dateStr}
-                      onChange={(event): void => void changeDate(event.target.value)}
+                      onChange={(event): void => changeDate(event.target.value)}
                       className={JOURNAL_INPUT}
                     />
                   </div>
@@ -497,7 +556,7 @@ export default function DiaryComposePage(): JSX.Element {
                             type="button"
                             title={PAGE_BACKGROUND_LABELS[value]}
                             aria-label={`页面底色 ${PAGE_BACKGROUND_LABELS[value]}`}
-                            onClick={(): void => void changeBackground(value)}
+                            onClick={(): void => changeBackground(value)}
                             className="size-[26px] cursor-pointer rounded-[8px]"
                             style={{
                               backgroundColor: PAGE_BACKGROUND_HEX[value],
@@ -705,7 +764,7 @@ export default function DiaryComposePage(): JSX.Element {
                         setDrag({ kind: 'new', cardType: type })
                       }}
                       onDragEnd={(): void => setDrag(null)}
-                      onClick={(): void => void addCard(type, cards.length)}
+                      onClick={(): void => addCard(type, cards.length)}
                       className="flex h-[66px] cursor-grab flex-col items-center justify-center gap-1.5 rounded-[11px] border border-dashed border-paper-line-dash-strong bg-paper-card text-[11px] text-ink hover:bg-paper-sunken"
                     >
                       <Icon size={16} />
@@ -739,7 +798,7 @@ export default function DiaryComposePage(): JSX.Element {
             <TemplatesPanel
               targetLabel="这一天"
               disabled={cards.length === 0}
-              onApply={(templateId): void => void commit(applyTemplate(cards, templateId))}
+              onApply={(templateId): void => commit(applyTemplate(cards, templateId))}
             />
           </>
         }
@@ -750,7 +809,7 @@ export default function DiaryComposePage(): JSX.Element {
             key={card.id}
             card={card}
             mode="edit"
-            patch={selectedId === card.id ? patchSelected : undefined}
+            patch={(next): void => patchCard(card.id, next)}
             selected={selectedId === card.id}
             dragging={draggedCardId === card.id}
             dropTarget={dropTarget?.cardId === card.id && draggedCardId !== card.id}
@@ -843,7 +902,7 @@ export default function DiaryComposePage(): JSX.Element {
             className="flex min-h-[148px] min-w-0 flex-[1_1_300px] flex-col items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed border-terra bg-terra-wash"
             onDragOver={(event): void => event.preventDefault()}
             onDrop={(): void => {
-              void addCard(drag.cardType, cards.length)
+              addCard(drag.cardType, cards.length)
               setDrag(null)
               setDropTarget(null)
             }}

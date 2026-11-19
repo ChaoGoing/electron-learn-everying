@@ -2,13 +2,15 @@
  * 卡片板（时间轴）：设计稿 `Main.dc.html` 的内容区。
  *
  * 版面分两栏：
- * - **左栏（固定）**：素材、编排模板、今日提示——都是"工具"，不参与卡片流。
+ * - **左栏（固定）**：编排模板、今日提示——都是"工具"，不参与卡片流。
  *   放在卡片流里的话，卡片一多它们就漂到别处，拖拽落卡的交互会一直跳。
+ *   素材面板刻意不放这里：时间轴是"看和翻"的地方，加卡片去编排模式，
+ *   免得这一栏被六个类型按钮和图片缩略图占满。
  * - **主区（可滚动）**：日期卡 + 当天的卡片 + 月级信息面板（今日小结 / 迷你月历 /
  *   连续记录 / 标签 / 本月心情）。这些是内容与只读信息，跟着内容一起流动。
  *
- * 拖拽用原生 HTML5 DnD：卡片之间拖动即重排（落点由 `dropSideOf` 判定插到前/后），
- * 从「素材」拖进来即在落点插入新卡片。每张卡片悬停浮现 编辑 / 复制 / 删除。
+ * 拖拽用原生 HTML5 DnD：卡片之间拖动即重排，落点由 `dropSideOf` 判定插到前/后。
+ * 每张卡片悬停浮现 编辑 / 复制 / 删除。
  */
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -18,7 +20,6 @@ import { DateHeaderCard } from '../../components/diary/DateHeaderCard'
 import { JournalToolbar } from '../../components/diary/JournalToolbar'
 import { JournalWorkspace } from '../../components/diary/JournalWorkspace'
 import {
-  MaterialsPanel,
   MiniCalendarPanel,
   MoodPanel,
   PromptPanel,
@@ -30,10 +31,8 @@ import {
 import { useDiaryStore } from '../../stores/diaryStore'
 import {
   applyTemplate,
-  createCard,
   dropSideOf,
   entryWordCount,
-  insertCardAt,
   insertIndexFor,
   moveCardTo,
   type DropSide
@@ -48,9 +47,7 @@ import {
   tagStats,
   todayKey
 } from '../../lib/diaryStats'
-import type { DiaryCard, DiaryCardType } from '../../../../shared/types/diary'
-
-type DragState = { kind: 'card'; cardId: string } | { kind: 'new'; cardType: DiaryCardType } | null
+import type { DiaryCard } from '../../../../shared/types/diary'
 
 interface DropTarget {
   cardId: string
@@ -61,7 +58,6 @@ export default function DiaryBoardPage(): JSX.Element {
   const navigate = useNavigate()
 
   const entries = useDiaryStore((state) => state.entries)
-  const images = useDiaryStore((state) => state.images)
   const selectedDate = useDiaryStore((state) => state.selectedDate)
   const year = useDiaryStore((state) => state.year)
   const month = useDiaryStore((state) => state.month)
@@ -72,7 +68,7 @@ export default function DiaryBoardPage(): JSX.Element {
   const deleteCard = useDiaryStore((state) => state.deleteCard)
   const duplicateCard = useDiaryStore((state) => state.duplicateCard)
 
-  const [drag, setDrag] = useState<DragState>(null)
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null)
 
   const page = useMemo(() => pageForDate(entries, selectedDate), [entries, selectedDate])
@@ -97,8 +93,8 @@ export default function DiaryBoardPage(): JSX.Element {
   const todayPage = useMemo(() => pageForDate(entries, today), [entries, today])
 
   const draggedIndex = useMemo(
-    () => (drag?.kind === 'card' ? cards.findIndex((card) => card.id === drag.cardId) : -1),
-    [cards, drag]
+    () => (draggedCardId ? cards.findIndex((card) => card.id === draggedCardId) : -1),
+    [cards, draggedCardId]
   )
 
   /* ── 写入 ─────────────────────────────────────────────────── */
@@ -110,13 +106,6 @@ export default function DiaryBoardPage(): JSX.Element {
       await saveCards(target.id, nextCards)
     },
     [page, createPage, selectedDate, saveCards]
-  )
-
-  const addCard = useCallback(
-    async (type: DiaryCardType, insertBefore: number): Promise<void> => {
-      await persistCards(insertCardAt(cards, createCard(type, insertBefore), insertBefore))
-    },
-    [cards, persistCards]
   )
 
   /* ── 导航 ─────────────────────────────────────────────────── */
@@ -138,40 +127,77 @@ export default function DiaryBoardPage(): JSX.Element {
 
   /* ── 拖拽 ─────────────────────────────────────────────────── */
 
+  /** 只有一张卡片时"重排"其实无处可排：不给拖拽手柄，也不显示落点，免得拖了没反应。 */
+  const canReorder = cards.length > 1
+
   const resetDrag = (): void => {
-    setDrag(null)
+    setDraggedCardId(null)
     setDropTarget(null)
   }
 
-  /** 落到某张卡片的一侧：重排，或在那个位置插入新卡片。 */
+  /**
+   * 指针最近的那张卡片。
+   *
+   * 卡片之间是 16px 的空隙，下面还跟着一排面板——指针落在这些地方时，
+   * 卡片自己的 dragover/drop 根本不会触发，用户看到的就是"松手了但什么都没发生"。
+   * 这里按到卡片矩形的距离找最近的落点，落到空隙、面板、空白处也照样有位可去。
+   */
+  const nearestDrop = (event: { clientX: number; clientY: number }): DropTarget | null => {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-card-id]'))
+    let best: { id: string; side: DropSide; distance: number } | null = null
+
+    for (const node of nodes) {
+      const id = node.dataset.cardId
+      if (!id) continue
+      const rect = node.getBoundingClientRect()
+      const dx = Math.max(rect.left - event.clientX, 0, event.clientX - rect.right)
+      const dy = Math.max(rect.top - event.clientY, 0, event.clientY - rect.bottom)
+      const distance = Math.hypot(dx, dy)
+      if (!best || distance < best.distance) {
+        best = { id, side: dropSideOf(event, node), distance }
+      }
+    }
+
+    return best ? { cardId: best.id, side: best.side } : null
+  }
+
+  /** 落到某张卡片的一侧：重排。顺序没变就不写盘。 */
   const dropOnCard = (targetId: string, side: DropSide): void => {
+    const from = cards.findIndex((card) => card.id === draggedCardId)
     const index = cards.findIndex((card) => card.id === targetId)
-    if (index === -1 || !drag) {
+    if (index === -1 || from === -1) {
       resetDrag()
       return
     }
-    const insertBefore = insertIndexFor(index, side)
-    if (drag.kind === 'new') {
-      void addCard(drag.cardType, insertBefore)
-    } else if (draggedIndex !== -1) {
-      const next = moveCardTo(cards, draggedIndex, insertBefore)
-      // 顺序没变就不用写盘
-      if (next.some((card, position) => card.id !== cards[position]?.id)) {
-        void persistCards(next)
-      }
+    const next = moveCardTo(cards, from, insertIndexFor(index, side))
+    if (next.some((card, position) => card.id !== cards[position]?.id)) {
+      void persistCards(next)
     }
     resetDrag()
+  }
+
+  /** 卡片流的容器兜底：落到空隙 / 面板 / 空白处，按最近的卡片归位。 */
+  const contentDragProps: React.HTMLAttributes<HTMLDivElement> = {
+    onDragOver: (event): void => {
+      if (!draggedCardId) return
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+      const target = nearestDrop(event)
+      setDropTarget(target && target.cardId !== draggedCardId ? target : null)
+    },
+    onDrop: (event): void => {
+      if (!draggedCardId) return
+      event.preventDefault()
+      const target = nearestDrop(event)
+      if (target) dropOnCard(target.cardId, target.side)
+      else resetDrag()
+    }
   }
 
   /* ── 左栏 ─────────────────────────────────────────────────── */
 
   const rail = (
     <>
-      <MaterialsPanel
-        recentImages={images}
-        onAddCard={(type): void => void addCard(type, cards.length)}
-        onDragCard={(type): void => setDrag({ kind: 'new', cardType: type })}
-      />
       <TemplatesPanel
         disabled={cards.length === 0}
         onApply={(id): void => void persistCards(applyTemplate(cards, id))}
@@ -184,7 +210,7 @@ export default function DiaryBoardPage(): JSX.Element {
     <>
       <JournalToolbar view="timeline" onWriteToday={(): void => void writeToday()} />
 
-      <JournalWorkspace rail={rail}>
+      <JournalWorkspace rail={rail} contentProps={contentDragProps}>
         <DateHeaderCard
           date={selectedDate}
           page={page}
@@ -198,7 +224,7 @@ export default function DiaryBoardPage(): JSX.Element {
             key={card.id}
             card={card}
             mode="read"
-            draggable
+            draggable={canReorder}
             dragging={draggedIndex === index}
             dropTarget={dropTarget?.cardId === card.id && draggedIndex !== index}
             dropSide={dropTarget?.side}
@@ -221,13 +247,13 @@ export default function DiaryBoardPage(): JSX.Element {
             onDragStart={(event): void => {
               event.dataTransfer.setData('text/plain', `diary-card:${card.id}`)
               event.dataTransfer.effectAllowed = 'move'
-              setDrag({ kind: 'card', cardId: card.id })
+              setDraggedCardId(card.id)
             }}
             onDragEnd={resetDrag}
             onDragOver={(event): void => {
               event.preventDefault()
               event.stopPropagation()
-              event.dataTransfer.dropEffect = drag?.kind === 'new' ? 'copy' : 'move'
+              event.dataTransfer.dropEffect = 'move'
               setDropTarget({ cardId: card.id, side: dropSideOf(event, event.currentTarget) })
             }}
             onDrop={(event): void => {
@@ -239,20 +265,22 @@ export default function DiaryBoardPage(): JSX.Element {
           />
         ))}
 
-        {/* 卡片流末尾的落点：把卡片拖到空白处即排到最后 */}
-        {drag ? (
+        {/* 卡片流末尾的落点：给一个看得见的"放最后"提示（容器级兜底负责其余空白处） */}
+        {canReorder && draggedCardId ? (
           <section
             aria-label="拖到末尾"
             onDragOver={(event): void => {
               event.preventDefault()
               event.stopPropagation()
+              event.dataTransfer.dropEffect = 'move'
               setDropTarget(null)
             }}
-            onDrop={(): void => {
-              if (drag.kind === 'new') {
-                void addCard(drag.cardType, cards.length)
-              } else if (draggedIndex !== -1) {
-                void persistCards(moveCardTo(cards, draggedIndex, cards.length))
+            onDrop={(event): void => {
+              event.preventDefault()
+              event.stopPropagation()
+              const from = cards.findIndex((card) => card.id === draggedCardId)
+              if (from !== -1 && from !== cards.length - 1) {
+                void persistCards(moveCardTo(cards, from, cards.length))
               }
               resetDrag()
             }}

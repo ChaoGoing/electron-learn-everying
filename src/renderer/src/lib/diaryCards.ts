@@ -59,8 +59,27 @@ export const WEATHER_LABELS: Record<string, string> = {
   foggy: '雾'
 }
 
-/** 设计稿的五个心情档位（本月心情分布用）。 */
+/** 设计稿的五个心情档位（本月心情分布用：没有记录时按这几行摆空状态）。 */
 export const MOOD_DISTRIBUTION = ['happy', 'neutral', 'grateful', 'sad', 'tired']
+
+/**
+ * 心情 → 颜色：按分值走一档色阶，低分偏陶土红、高分偏灰绿。
+ * 与回顾页「平均心情」的 1–5 分色条是同一套语汇，换页面不会换颜色。
+ */
+const MOOD_SCORE_COLORS = [
+  'var(--color-terra)',
+  'var(--color-terra-bright)',
+  'var(--color-amber)',
+  '#7a8a63',
+  'var(--color-moss)'
+]
+
+export function moodColor(mood: string): string {
+  const score = MOOD_SCORES[mood]
+  if (score === undefined) return 'var(--color-terra-bright)'
+  const index = Math.min(5, Math.max(1, Math.round(score))) - 1
+  return MOOD_SCORE_COLORS[index]
+}
 
 /* ── 版式映射 ───────────────────────────────────────────────── */
 
@@ -312,7 +331,10 @@ export interface ComposeTemplate {
   id: string
   label: string
   hint: string
-  /** 版式预览的色块：[x, y, w, h, 强调?]，坐标系 100×52。 */
+  /**
+   * 版式预览的色块：[x, y, w, h, accent]，坐标系 100×52。
+   * `accent` 只标"套用后会拿到大位置的那张"（首张/主图），其余都是灰底。
+   */
   preview: Array<{ x: number; y: number; w: number; h: number; accent: boolean }>
 }
 
@@ -320,23 +342,23 @@ export const COMPOSE_TEMPLATES: ComposeTemplate[] = [
   {
     id: 'magazine',
     label: '杂志跨页',
-    hint: '大图或长文占左，其余堆在右侧',
+    hint: '照片排最前，首张半栏当主图，其余窄栏紧随',
     preview: [
-      { x: 10, y: 8, w: 26, h: 36, accent: false },
-      { x: 42, y: 10, w: 48, h: 7, accent: true },
-      { x: 42, y: 23, w: 38, h: 7, accent: false },
-      { x: 42, y: 36, w: 44, h: 7, accent: false }
+      { x: 8, y: 8, w: 30, h: 36, accent: true },
+      { x: 44, y: 8, w: 46, h: 10, accent: false },
+      { x: 44, y: 22, w: 38, h: 10, accent: false },
+      { x: 44, y: 36, w: 44, h: 8, accent: false }
     ]
   },
   {
     id: 'grid',
     label: '九宫格',
-    hint: '每张卡片等宽，一行三张',
+    hint: '不动顺序，每张等宽，一行三张',
     preview: [
       { x: 8, y: 8, w: 24, h: 15, accent: false },
-      { x: 38, y: 8, w: 24, h: 15, accent: true },
+      { x: 38, y: 8, w: 24, h: 15, accent: false },
       { x: 68, y: 8, w: 24, h: 15, accent: false },
-      { x: 8, y: 29, w: 24, h: 15, accent: true },
+      { x: 8, y: 29, w: 24, h: 15, accent: false },
       { x: 38, y: 29, w: 24, h: 15, accent: false },
       { x: 68, y: 29, w: 24, h: 15, accent: false }
     ]
@@ -344,34 +366,39 @@ export const COMPOSE_TEMPLATES: ComposeTemplate[] = [
   {
     id: 'hero',
     label: '大图优先',
-    hint: '首张通栏，其余两栏平分',
+    hint: '照片排最前，首张通栏当大图，其余两两成行',
     preview: [
-      { x: 10, y: 8, w: 80, h: 15, accent: false },
-      { x: 10, y: 29, w: 37, h: 15, accent: true },
+      { x: 10, y: 8, w: 80, h: 15, accent: true },
+      { x: 10, y: 29, w: 37, h: 15, accent: false },
       { x: 53, y: 29, w: 37, h: 15, accent: false }
     ]
   }
 ]
 
+/** 照片排到最前，其余保持原顺序。 */
+function photoFirst(cards: DiaryCard[]): DiaryCard[] {
+  const rank = (card: DiaryCard): number => (card.type === 'photo' ? 0 : 1)
+  return [...cards].sort((a, b) => rank(a) - rank(b) || a.order - b.order)
+}
+
 /**
  * 套用模板：只改排列顺序与版式宽度，不删任何一张卡片。
- * 优先把照片推到最前，其余按原顺序跟随。
+ *
+ * - `magazine` 杂志跨页：照片排最前，首张半栏当主图，其余窄栏（半栏 + 窄栏同行，之后窄栏成行）；
+ * - `grid` 九宫格：不动顺序，全部三等分；
+ * - `hero` 大图优先：照片排最前，首张通栏，其余半栏两两成行。
  */
 export function applyTemplate(cards: DiaryCard[], templateId: string): DiaryCard[] {
-  const photoFirst = [...cards].sort((a, b) => {
-    const rank = (card: DiaryCard): number => (card.type === 'photo' ? 0 : 1)
-    return rank(a) - rank(b) || a.order - b.order
-  })
+  const ordered =
+    templateId === 'grid' ? [...cards].sort((a, b) => a.order - b.order) : photoFirst(cards)
 
-  return photoFirst.map((card, index) => {
+  return ordered.map((card, index) => {
     if (templateId === 'grid') {
       return { ...card, order: index, width: 'third' as DiaryCardWidth }
     }
     if (templateId === 'hero') {
       return { ...card, order: index, width: index === 0 ? ('full' as const) : ('half' as const) }
     }
-    // 杂志跨页：首张放大，其余窄栏
-    const wide = index === 0 ? card.type === 'photo' || card.type === 'text' : false
-    return { ...card, order: index, width: wide ? ('half' as const) : ('third' as const) }
+    return { ...card, order: index, width: index === 0 ? ('half' as const) : ('third' as const) }
   })
 }
