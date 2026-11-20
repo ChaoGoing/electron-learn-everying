@@ -1,9 +1,27 @@
-# 源码架构导读：`src/main/storage/diary.ts`
+# 源码架构导读：日记本地存储层
 
 > 面向初级前端的**原理讲解**。不是逐行注释，而是从代码里的具体写法反推它背后的通用概念，
 > 每条都挂回源码位置，方便你对着读。
 >
-> 行号基于 2026-11-19 的版本（文件共 814 行），后续改动可能让行号漂移，按函数名搜索即可。
+> 行号基于 2026-11-19 的版本（当时是单文件 `src/main/storage/diary.ts`，815 行）。
+>
+> ⚠️ **该文件已按职责拆分到 `src/main/storage/diary/`**：下文所有行号都属于拆分前的单文件，
+> 请按**函数名**在新目录里搜，对照关系如下（对外导入路径仍是 `storage/diary`，由 `index.ts` 转出）。
+>
+> | 下文讲的 | 现在在哪个文件 |
+> | --- | --- |
+> | 路径解析（`getDataDir` / `getEntryPath` / `getIndexPath` / `entryDate`） | `paths.ts` |
+> | 卡片规范化（`normalizeCard` / `normalizeCards`） | `cards.ts` |
+> | 旧版 Tiptap HTML → 卡片（`cardsFromLegacyHtml`） | `legacy.ts` |
+> | 文本与字数（`cardText` / `countText` / `countCards` / `entrySearchText`） | `text.ts` |
+> | 条目规范化与索引摘要（`normalizeEntry` / `entryMeta`） | `normalize.ts` |
+> | 写入串行化与原子落盘（`serializeWrite` / `writeJsonAtomic`） | `io.ts` |
+> | 单条目文件读写（`readEntryFile` / `writeEntryFile`） | `entryFile.ts` |
+> | 索引读写与重建（`readIndex` / `writeIndex` / `rebuildIndex`） | `entryIndex.ts` |
+> | 对外 CRUD / 查询（`createEntry` / `updateEntry` / `listEntries` …） | `entries.ts` |
+> | 图片素材（`uploadImage` / `listImages`） | `images.ts` |
+>
+> 想要**可以直接跑**的最小案例（含并发写坏文件的复现实验），见 `learning/diary-storage/`。
 
 ---
 
@@ -20,7 +38,7 @@ diaryStore / DiaryComposePage
   preload (contextBridge)  ──IPC──►  ipc/diary.ts    ← 只做参数转发，无业务逻辑
                                           │
                                           ▼
-                                     storage/diary.ts  ← 你正在读的这个文件
+                                     storage/diary/    ← 本文讲的这一层
                                           │
                                           ▼
                                      userData/data/diary/**.json

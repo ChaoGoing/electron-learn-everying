@@ -38,7 +38,7 @@ src/
 │   ├── index.ts     # 入口：创建无边框窗口、注册 IPC
 │   ├── window.ts    # 窗口控制（最小化/最大化/关闭/是否最大化）
 │   ├── ipc/         # IPC handler，按领域拆分；index.ts 聚合注册
-│   ├── storage/     # 本地文件读写，按领域拆分
+│   ├── storage/     # 本地文件读写，按领域拆分（diary/ 是日记持久层，见「本地存储」）
 │   └── sync/        # 同步逻辑（推送/拉取/状态）
 ├── preload/         # contextBridge 暴露 window.api（index.ts + index.d.ts）
 ├── renderer/        # React SPA
@@ -55,6 +55,7 @@ src/
 
 - 渲染进程别名：`@renderer/*` → `src/renderer/src/*`（`electron.vite.config.ts` 与 `tsconfig.web.json` 均配置）。
 - 主进程 / preload / shared 由 `tsconfig.node.json` 覆盖；`tsconfig.json` 只是 references。
+- 根目录另有 `learning/diary-storage/`：**独立的文件存储教学示例**（零依赖、`node run-all.mjs` 直接跑，只在系统临时目录里开沙盒）。不属于源码，`src/` 不引用、构建不打包，ESLint 也跳过（`eslint.config.mjs` 的 ignores）。
 
 ## 三进程架构与数据流
 
@@ -86,11 +87,28 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 
 - 日记**删除走墓碑软删**：写入 `deletedAt` 时间戳而非删除文件，供同步传播。
 - **写入必须过 `serializeWrite()`**：主进程的 create/update/delete/sync-merge 排成一条链，单次落盘走 `writeJsonAtomic()`（写 `.tmp` 再 rename）。并发写同一个文件会互相截断，落下"合法 JSON + 上一版尾巴"，文件从此解析不了（2026-11-19 真出过一次，整个日记列表跟着报错）。渲染进程侧另有一条 `writeChain` 队列，保证最后落盘的就是最后改的版本。
-- **单条坏文件不连坐**：读文件走 `readEntryFile()`，解析失败记日志并跳过；`index.json` 读坏时按磁盘文件**重建**（索引只是缓存，文件才是事实源）。
+- **单条坏文件不连坐**：读文件走 `readEntryFile()`，解析失败记日志并跳过；`index.json` **读坏**时按磁盘文件**重建**（索引只是缓存，文件才是事实源）。注意**缺失**时不重建（`readIndex()` 把「文件不存在」当成「还没有日记」，只有解析失败才走 `rebuildIndex()`）。
 - 读取旧数据时用 `normalizeEntry()` 补默认值，并**顺带迁移**：没有 `cards` 的旧条目会把 `content`（Tiptap HTML）拆成 文字 / 摘录 / 清单 / 照片 卡片。迁移结果在下次写入时落盘，无需单独的迁移脚本。
 - 字数按**中英混排**统计（CJK 逐字 + 其余按空白切词），主进程的 `countText` 与渲染进程 `lib/diaryCards.ts` 各有一份同实现。
 - 「页面设置」改日期会**移动文件**到新的 `{year}/{month}/` 并重写索引（`updateEntry` 收到 `date` 时走 `moveEntryDate`）。
 - 同步语义（增量、`updatedAt` 游标、后写覆盖、首次按 `id` 合并）权威来源见 `docs/diary-sync-api.md`。
+
+存储层实现在 `src/main/storage/diary/`，对外只经 `index.ts` 转出（导入路径仍是 `storage/diary`），按职责分层、不反向依赖：
+
+| 文件 | 职责 |
+| --- | --- |
+| `paths.ts` | 数据目录 / 图片目录 / 条目文件 / 索引文件的路径解析 |
+| `io.ts` | `serializeWrite()`（写入串行化）+ `writeJsonAtomic()`（`.tmp` + rename） |
+| `cards.ts` | 卡片规范化（补默认值、丢弃非法卡片、重排 `order`） |
+| `legacy.ts` | 旧版 Tiptap HTML 正文 → 卡片的迁移 |
+| `text.ts` | 卡片/条目文本提取与中英混排字数（`countText` / `countCards` / `entrySearchText`） |
+| `normalize.ts` | 条目规范化：读旧数据时补默认值并顺带迁移 |
+| `entryFile.ts` | 单个条目文件的读 / 写 / 删 |
+| `entryIndex.ts` | `index.json` 的读 / 写 / 重建 / 增减 |
+| `entries.ts` | 对外 CRUD 与查询 API（文件与索引在这里合成一次保存，写操作都过 `serializeWrite`） |
+| `images.ts` | 图片素材（选择 / 复制到 `userData/images` / 列表） |
+
+改动存储层时：**写入口只走 `entries.ts`**（保证排队），读入口只走 `entryFile.ts` / `entries.ts`（保证坏文件被吸收、旧数据被规范化）。
 
 ## 前端 UI 约定
 
@@ -119,6 +137,8 @@ images/{uuid}.{ext}                         # 日记图片附件（返回 file:/
 - 以下文档**已过期或与实际代码不符**，引用前先核对源码：
   - `方案.md`：描述"日记模板底座（图文卡片）"改造，所列 `src/renderer/src/lib/diaryHtml.ts`、`components/diary/templates.ts`、`components/diary/PhotoNoteEditor.tsx` 及 `DiaryEntry.type/blocks` 字段**当前都不在源码中**。其**意图已在卡片模型里落地**（模板 → `lib/diaryCards.ts` 的 `COMPOSE_TEMPLATES`），但文件名与字段名与本文档不同。
   - `docs/diary-sync-client-plan.md`：开头写"尚未改代码"，但 `src/main/sync/diary.ts`、`src/renderer/src/stores/syncStore.ts`、`src/renderer/src/components/diary/SyncToolbar.tsx` 等**实际已实现**。
+  - `docs/diary-storage-architecture.md`：内容是存储层的原理导读，但**行号引用的是拆分前的单文件版本**（`src/main/storage/diary.ts`，815 行），现已拆到 `src/main/storage/diary/`，按函数名搜索对应文件即可；文件顶部有新旧对照。
+- 学习用的可跑最小案例在 `learning/diary-storage/`（7 课，`node run-all.mjs`），与源码同步演进，但**不是源码**。
 - 根目录的 `vite.cal-preview.config.mts`、`.cal-preview-main.tsx`、`.cal-preview.html` 是**临时草稿**，非正式入口；正式 Vite 配置是 `electron.vite.config.ts`。
 
 # 代码提交

@@ -12,7 +12,10 @@ export default tseslint.config(
       '**/out',
       // 嵌入子页面的主题接收端：是分发给「子页面仓库」的可移植产物，
       // 刻意写成零依赖 ES5，不属于本项目的 TS 源码，因此不参与 lint。
-      'src/renderer/src/embedded/theme-client.js'
+      'src/renderer/src/embedded/theme-client.js',
+      // 学习用示例：零依赖的独立 Node 脚本（`node 0x-*.mjs` 直接跑），
+      // 代码风格刻意写得直白，不作为项目源码维护。
+      'learning/**'
     ]
   },
   tseslint.configs.recommended,
